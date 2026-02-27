@@ -1,5 +1,5 @@
 [package]
-name = "fme"
+name = "md-fme"
 version = "0.8.0"
 edition = "2024"
 description = "CLI for Obsidian vault frontmatter validation, querying, and spaced repetition workflows"
