@@ -31,7 +31,7 @@ enum Commands {
     #[command(
         long_about = r#"Validate .md files against a TOML schema.
 
-Walks a folder recursively and checks every .md file's YAML
+Scans a folder (non-recursive, single level) and checks every .md file's YAML
 frontmatter against the rules in a TOML schema. Auto-discovers
 schema.toml in the target folder when --schema is omitted.
 
@@ -61,13 +61,19 @@ Schema format (schema.toml):
         /// Folder to scan
         #[arg(long)]
         folder: PathBuf,
+        /// Auto-fix missing mandatory fields using schema defaults
+        #[arg(long)]
+        fix: bool,
+        /// Comma-separated file patterns to exclude (e.g. "README.md,template.md")
+        #[arg(long)]
+        exclude: Option<String>,
     },
 
     /// Query frontmatter with a DSL expression
     #[command(
         long_about = r#"Query frontmatter with a rich DSL expression.
 
-Walks a folder recursively and evaluates a boolean expression
+Scans a folder (non-recursive, single level) and evaluates a boolean expression
 against every .md file's YAML frontmatter. Prints matching
 file paths (or field values with --verbose).
 
@@ -238,9 +244,9 @@ Scans all .md files with sr: frontmatter and displays:
 fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
-        Commands::Enforce { schema, folder } => {
+        Commands::Enforce { schema, folder, fix, exclude } => {
             let schema_path = schema.unwrap_or_else(|| folder.join("schema.toml"));
-            enforce::run(&schema_path, &folder)
+            enforce::run(&schema_path, &folder, fix, exclude.as_deref())
         }
         Commands::Query {
             expression,

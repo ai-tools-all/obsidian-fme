@@ -1,0 +1,12 @@
+[fields.status]
+mandatory = true
+allowed_values = ["attempted", "completed"]
+default = "attempted"
+
+[fields.type]
+mandatory = true
+
+[fields.date]
+mandatory = true
+format = "date"
+default = "2026-01-01"
