@@ -136,7 +136,10 @@ pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str) ->
     for f in &files {
         let raw = match frontmatter::read_raw(f) {
             Ok(r) => r,
-            Err(_) => continue,
+            Err(e) => {
+                eprintln!("Warning: skipping {}: {e}", f.display());
+                continue;
+            }
         };
 
         let doc = match frontmatter::parse(&raw) {
@@ -176,7 +179,10 @@ pub fn today(folder: &Path) -> Result<(), String> {
     for file in &files {
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
-            Err(_) => continue,
+            Err(e) => {
+                eprintln!("Warning: skipping {}: {e}", file.display());
+                continue;
+            }
         };
         let sr = match extract_sr(&doc.frontmatter) {
             Some(s) => s,
@@ -233,7 +239,10 @@ pub fn stats(folder: &Path) -> Result<(), String> {
     for file in &files {
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
-            Err(_) => continue,
+            Err(e) => {
+                eprintln!("Warning: skipping {}: {e}", file.display());
+                continue;
+            }
         };
         let sr = match extract_sr(&doc.frontmatter) {
             Some(s) => s,

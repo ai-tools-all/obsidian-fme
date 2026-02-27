@@ -290,7 +290,10 @@ pub fn run(expression: &str, folder: &Path, verbose: bool) -> Result<(), String>
     for file in &files {
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
-            Err(_) => continue,
+            Err(e) => {
+                eprintln!("Warning: skipping {}: {e}", file.display());
+                continue;
+            }
         };
         match parse_and_eval(expression, &doc.frontmatter) {
             Ok(true) => {
