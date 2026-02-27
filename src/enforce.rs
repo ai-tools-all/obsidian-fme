@@ -215,6 +215,24 @@ pub fn run(schema_path: &Path, folder: &Path, fix: bool, exclude: Option<&str>) 
         if missing.is_empty() {
             fail += 1;
             println!("{} {} — {}", "FAIL".red().bold(), fname, errors.join("; "));
+            for (field_name, field_def) in &schema.fields {
+                if let Some(allowed) = &field_def.allowed_values {
+                    if field_def.default.is_none() {
+                        if let Some(v) = frontmatter::get_nested(&doc.frontmatter, field_name) {
+                            let s = frontmatter::value_to_string(v);
+                            if !allowed.contains(&s) {
+                                println!(
+                                    "  {} `{}` has allowed_values but no default — add `default = \"{}\"` to [fields.{}] in schema.toml to enable --fix",
+                                    "HINT:".cyan().bold(),
+                                    field_name,
+                                    allowed[0],
+                                    field_name,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
             continue;
         }
 
