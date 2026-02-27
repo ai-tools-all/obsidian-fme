@@ -11,8 +11,7 @@ use std::path::PathBuf;
 #[command(
     name = "md-fme",
     version = env!("CARGO_PKG_VERSION"),
-    about = concat!("Frontmatter Engine v", env!("CARGO_PKG_VERSION")),
-    long_about = concat!("Frontmatter Engine (md-fme) v", env!("CARGO_PKG_VERSION"), " — a CLI for Obsidian vaults.\n\nEnforce frontmatter schemas, query fields with a rich DSL,\nand run SM-2 spaced repetition workflows — all from the terminal."),
+    about = concat!("Frontmatter Engine (md-fme) v", env!("CARGO_PKG_VERSION"), " — a CLI for Obsidian vaults.\n\nEnforce frontmatter schemas, query fields with a rich DSL,\nand run SM-2 spaced repetition workflows — all from the terminal."),
     after_help = r#"QUICK START:
   md-fme enforce --folder ./mistakes/
   md-fme query "difficulty = hard AND status = completed" --folder .
