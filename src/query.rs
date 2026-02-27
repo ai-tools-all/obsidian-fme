@@ -291,7 +291,9 @@ pub fn run(expression: &str, folder: &Path, verbose: bool) -> Result<(), String>
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("Warning: skipping {}: {e}", file.display());
+                if verbose {
+                    eprintln!("Warning: skipping {}: {e}", file.display());
+                }
                 continue;
             }
         };
@@ -315,7 +317,11 @@ pub fn run(expression: &str, folder: &Path, verbose: bool) -> Result<(), String>
                 }
             }
             Ok(false) => {}
-            Err(e) => eprintln!("Query error on {}: {e}", file.display()),
+            Err(e) => {
+                if verbose {
+                    eprintln!("Query error on {}: {e}", file.display());
+                }
+            }
         }
     }
 

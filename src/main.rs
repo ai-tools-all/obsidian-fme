@@ -119,7 +119,7 @@ SPECIAL:
         /// Folder to scan
         #[arg(long)]
         folder: PathBuf,
-        /// Show matching field values
+        /// Show matching field values and skipped-file warnings
         #[arg(long)]
         verbose: bool,
     },
