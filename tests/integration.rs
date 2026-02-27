@@ -3,7 +3,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn fme_bin() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_fme"))
+    Command::new(env!("CARGO_BIN_EXE_md-fme"))
 }
 
 fn fixture(name: &str) -> String {

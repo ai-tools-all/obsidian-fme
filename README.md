@@ -1,4 +1,4 @@
-# fme — Frontmatter Engine
+# md-fme — Frontmatter Engine
 
 CLI for Obsidian vault frontmatter validation, querying, and SM-2 spaced repetition workflows.
 
@@ -6,42 +6,42 @@ CLI for Obsidian vault frontmatter validation, querying, and SM-2 spaced repetit
 
 ```sh
 cargo build --release
-cp target/release/fme ~/bin/
+cp target/release/md-fme ~/bin/
 ```
 
 ## Quick Start
 
 ```sh
 # Validate against schema.toml auto-discovered in the folder
-fme enforce --folder ./vault
+md-fme enforce --folder ./vault
 
 # Validate with an explicit schema file
-fme enforce --schema ./schemas/my-schema.toml --folder ./vault
+md-fme enforce --schema ./schemas/my-schema.toml --folder ./vault
 
 # Auto-fix missing mandatory fields
-fme enforce --folder ./vault --fix
+md-fme enforce --folder ./vault --fix
 
 # Skip files matching a pattern
-fme enforce --folder ./vault --exclude "template.md,README.md"
+md-fme enforce --folder ./vault --exclude "template.md,README.md"
 
 # Query with DSL
-fme query "difficulty = hard AND status = completed" --folder .
+md-fme query "difficulty = hard AND status = completed" --folder .
 
 # Show values for matching files
-fme query "status = completed" --folder . --verbose
+md-fme query "status = completed" --folder . --verbose
 
 # Items due for review today
-fme today --folder .
+md-fme today --folder .
 
 # Record review with quality rating (0-5)
-fme review --file vault/problem.md --quality 4
+md-fme review --file vault/problem.md --quality 4
 
 # Initialize SR fields on a file/folder
-fme init-sr --file vault/problem.md
-fme init-sr --folder ./vault --review-type solve
+md-fme init-sr --file vault/problem.md
+md-fme init-sr --folder ./vault --review-type solve
 
 # SR analytics (streaks, overdue items, forecast)
-fme stats --folder .
+md-fme stats --folder .
 ```
 
 ## Frontmatter Format

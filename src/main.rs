@@ -9,16 +9,16 @@ use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(
-    name = "fme",
+    name = "md-fme",
     version = env!("CARGO_PKG_VERSION"),
     about = concat!("Frontmatter Engine v", env!("CARGO_PKG_VERSION")),
-    long_about = concat!("Frontmatter Engine (fme) v", env!("CARGO_PKG_VERSION"), " — a CLI for Obsidian vaults.\n\nEnforce frontmatter schemas, query fields with a rich DSL,\nand run SM-2 spaced repetition workflows — all from the terminal.\n\nSubcommands:\n  enforce   Validate .md files against a TOML schema\n  query     Search files using a frontmatter query DSL\n  today     Show SR items due for review today\n  review    Record an SM-2 review for a file\n  init-sr   Add spaced repetition fields to files\n  stats     Show spaced repetition statistics"),
+    long_about = concat!("Frontmatter Engine (md-fme) v", env!("CARGO_PKG_VERSION"), " — a CLI for Obsidian vaults.\n\nEnforce frontmatter schemas, query fields with a rich DSL,\nand run SM-2 spaced repetition workflows — all from the terminal.\n\nSubcommands:\n  enforce   Validate .md files against a TOML schema\n  query     Search files using a frontmatter query DSL\n  today     Show SR items due for review today\n  review    Record an SM-2 review for a file\n  init-sr   Add spaced repetition fields to files\n  stats     Show spaced repetition statistics"),
     after_help = r#"QUICK START:
-  fme enforce --folder ./mistakes/
-  fme query "difficulty = hard AND status = completed" --folder .
-  fme today --folder .
-  fme review --file mistakes/133_clone_graph.md --quality 4
-  fme stats --folder ."#
+  md-fme enforce --folder ./mistakes/
+  md-fme query "difficulty = hard AND status = completed" --folder .
+  md-fme today --folder .
+  md-fme review --file mistakes/133_clone_graph.md --quality 4
+  md-fme stats --folder ."#
 )]
 struct Cli {
     #[command(subcommand)]
@@ -49,10 +49,10 @@ Schema format (schema.toml):
   allowed_values = ["easy", "medium", "hard"]"#,
         after_help = r#"EXAMPLES:
   # Validate using auto-discovered schema.toml
-  fme enforce --folder ./mistakes/
+  md-fme enforce --folder ./mistakes/
 
   # Validate with an explicit schema file
-  fme enforce --schema ./custom-schema.toml --folder ./mistakes/"#
+  md-fme enforce --schema ./custom-schema.toml --folder ./mistakes/"#
     )]
     Enforce {
         /// Schema file (defaults to <folder>/schema.toml)
@@ -97,22 +97,22 @@ SPECIAL:
   dot.path   Access nested YAML fields: sr.next_review, sr.ease"#,
         after_help = r#"EXAMPLES:
   # Find all BFS problems
-  fme query "topics contains bfs" --folder .
+  md-fme query "topics contains bfs" --folder .
 
   # Find completed hard problems
-  fme query "difficulty = hard AND status = completed" --folder .
+  md-fme query "difficulty = hard AND status = completed" --folder .
 
   # Find items due for review today or earlier
-  fme query "sr.next_review <= today" --folder .
+  md-fme query "sr.next_review <= today" --folder .
 
   # Find files missing a pattern field
-  fme query "pattern missing" --folder .
+  md-fme query "pattern missing" --folder .
 
   # Combine review_type filter with due date
-  fme query "review_type = solve AND sr.next_review <= today" --folder .
+  md-fme query "review_type = solve AND sr.next_review <= today" --folder .
 
   # Show field values for matching files
-  fme query "status = completed" --folder . --verbose"#
+  md-fme query "status = completed" --folder . --verbose"#
     )]
     Query {
         /// Query expression (e.g. "difficulty = hard AND status = completed")
@@ -129,13 +129,13 @@ SPECIAL:
     #[command(
         long_about = r#"Show spaced repetition items due for review today.
 
-Sugar for: fme query "sr.next_review <= today" --folder <folder>
+Sugar for: md-fme query "sr.next_review <= today" --folder <folder>
 
 Outputs a formatted table with file name, next review date,
 interval, ease factor, and review type."#,
         after_help = r#"EXAMPLES:
-  fme today --folder .
-  fme today --folder ./mistakes/"#
+  md-fme today --folder .
+  md-fme today --folder ./mistakes/"#
     )]
     Today {
         /// Folder to scan
@@ -164,13 +164,13 @@ Quality 3 produces slower interval growth.
 Quality 4-5 produces normal/fast interval growth."#,
         after_help = r#"EXAMPLES:
   # Good recall with some hesitation
-  fme review --file mistakes/133_clone_graph.md --quality 4
+  md-fme review --file mistakes/133_clone_graph.md --quality 4
 
   # Perfect recall
-  fme review --file mistakes/542_multisource_bfs.md --quality 5
+  md-fme review --file mistakes/542_multisource_bfs.md --quality 5
 
   # Failed recall — resets interval
-  fme review --file mistakes/133_clone_graph.md --quality 1"#
+  md-fme review --file mistakes/133_clone_graph.md --quality 1"#
     )]
     Review {
         /// File to review
@@ -199,13 +199,13 @@ are modified. Provide --file for a single file or --folder
 for batch initialization."#,
         after_help = r#"EXAMPLES:
   # Initialize a single file
-  fme init-sr --file mistakes/542.md
+  md-fme init-sr --file mistakes/542.md
 
   # Batch-initialize all files in a folder (default type: recall)
-  fme init-sr --folder ./mistakes/
+  md-fme init-sr --folder ./mistakes/
 
   # Batch-initialize with a custom review type
-  fme init-sr --folder ./mistakes/ --review-type solve"#
+  md-fme init-sr --folder ./mistakes/ --review-type solve"#
     )]
     InitSr {
         /// Single file
@@ -231,8 +231,8 @@ Scans all .md files with sr: frontmatter and displays:
   - Weakest items (lowest ease factor)
   - 7-day review load forecast"#,
         after_help = r#"EXAMPLES:
-  fme stats --folder .
-  fme stats --folder ./mistakes/"#
+  md-fme stats --folder .
+  md-fme stats --folder ./mistakes/"#
     )]
     Stats {
         /// Folder to scan

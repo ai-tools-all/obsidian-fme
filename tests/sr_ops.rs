@@ -9,7 +9,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn fme() -> Command {
-    Command::new(env!("CARGO_BIN_EXE_fme"))
+    Command::new(env!("CARGO_BIN_EXE_md-fme"))
 }
 
 const SR_DIR: &str = "tests/fixtures/sr";
