@@ -12,7 +12,7 @@ use std::path::PathBuf;
     name = "md-fme",
     version = env!("CARGO_PKG_VERSION"),
     about = concat!("Frontmatter Engine v", env!("CARGO_PKG_VERSION")),
-    long_about = concat!("Frontmatter Engine (md-fme) v", env!("CARGO_PKG_VERSION"), " — a CLI for Obsidian vaults.\n\nEnforce frontmatter schemas, query fields with a rich DSL,\nand run SM-2 spaced repetition workflows — all from the terminal.\n\nSubcommands:\n  enforce   Validate .md files against a TOML schema\n  query     Search files using a frontmatter query DSL\n  today     Show SR items due for review today\n  review    Record an SM-2 review for a file\n  init-sr   Add spaced repetition fields to files\n  stats     Show spaced repetition statistics"),
+    long_about = concat!("Frontmatter Engine (md-fme) v", env!("CARGO_PKG_VERSION"), " — a CLI for Obsidian vaults.\n\nEnforce frontmatter schemas, query fields with a rich DSL,\nand run SM-2 spaced repetition workflows — all from the terminal."),
     after_help = r#"QUICK START:
   md-fme enforce --folder ./mistakes/
   md-fme query "difficulty = hard AND status = completed" --folder .
