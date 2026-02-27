@@ -20,8 +20,7 @@ echo "==> Building release..."
 cargo build --release
 
 echo "==> Installing to ~/bin..."
-rm -f ~/bin/"$BINARY"
-cp target/release/"$BINARY" ~/bin/"$BINARY"
+rm -f ~/bin/"$BINARY" && cp target/release/"$BINARY" ~/bin/"$BINARY"
 
 INSTALLED=$("$BINARY" --version 2>&1 || true)
 echo "==> Installed: $INSTALLED"
