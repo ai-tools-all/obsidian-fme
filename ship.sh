@@ -16,6 +16,9 @@ echo "==> $BINARY: $CURRENT → $NEW"
 
 sed -i "0,/version = \"$CURRENT\"/s//version = \"$NEW\"/" Cargo.toml
 
+echo "==> Generating changelog..."
+git-cliff --tag "v$NEW" -o CHANGELOG.md
+
 echo "==> Building release..."
 cargo build --release
 
