@@ -280,8 +280,8 @@ pub fn parse_and_eval(expression: &str, fm: &Value) -> Result<bool, String> {
     Ok(evaluate(&expr, fm))
 }
 
-pub fn run(expression: &str, folder: &Path, verbose: bool) -> Result<(), String> {
-    let files = frontmatter::collect_md_files(folder);
+pub fn run(expression: &str, folder: &Path, verbose: bool, depth: usize) -> Result<(), String> {
+    let files = frontmatter::collect_md_files(folder, depth);
     if files.is_empty() {
         return Err("No .md files found".to_string());
     }

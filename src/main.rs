@@ -30,7 +30,7 @@ enum Commands {
     #[command(
         long_about = r#"Validate .md files against a TOML schema.
 
-Scans a folder (non-recursive, single level) and checks every .md file's YAML
+Scans a folder (recursive up to --depth levels, default 3) and checks every .md file's YAML
 frontmatter against the rules in a TOML schema. Auto-discovers
 schema.toml in the target folder when --schema is omitted.
 
@@ -66,13 +66,16 @@ Schema format (schema.toml):
         /// Comma-separated file patterns to exclude (e.g. "README.md,template.md")
         #[arg(long)]
         exclude: Option<String>,
+        /// Recursion depth (0=unlimited, 1=no recursion, default=3)
+        #[arg(long, default_value_t = 3)]
+        depth: usize,
     },
 
     /// Query frontmatter with a DSL expression
     #[command(
         long_about = r#"Query frontmatter with a rich DSL expression.
 
-Scans a folder (non-recursive, single level) and evaluates a boolean expression
+Scans a folder (recursive up to --depth levels, default 3) and evaluates a boolean expression
 against every .md file's YAML frontmatter. Prints matching
 file paths (or field values with --verbose).
 
@@ -122,6 +125,9 @@ SPECIAL:
         /// Show matching field values and skipped-file warnings
         #[arg(long)]
         verbose: bool,
+        /// Recursion depth (0=unlimited, 1=no recursion, default=3)
+        #[arg(long, default_value_t = 3)]
+        depth: usize,
     },
 
     /// Show SR items due today
@@ -140,6 +146,9 @@ interval, ease factor, and review type."#,
         /// Folder to scan
         #[arg(long)]
         folder: PathBuf,
+        /// Recursion depth (0=unlimited, 1=no recursion, default=3)
+        #[arg(long, default_value_t = 3)]
+        depth: usize,
     },
 
     /// Record a review with SM-2 quality rating
@@ -216,6 +225,9 @@ for batch initialization."#,
         /// Review type (default: recall)
         #[arg(long, default_value = "recall")]
         review_type: String,
+        /// Recursion depth (0=unlimited, 1=no recursion, default=3)
+        #[arg(long, default_value_t = 3)]
+        depth: usize,
     },
 
     /// Show spaced repetition statistics
@@ -237,29 +249,34 @@ Scans all .md files with sr: frontmatter and displays:
         /// Folder to scan
         #[arg(long)]
         folder: PathBuf,
+        /// Recursion depth (0=unlimited, 1=no recursion, default=3)
+        #[arg(long, default_value_t = 3)]
+        depth: usize,
     },
 }
 
 fn main() {
     let cli = Cli::parse();
     let result = match cli.command {
-        Commands::Enforce { schema, folder, fix, exclude } => {
+        Commands::Enforce { schema, folder, fix, exclude, depth } => {
             let schema_path = schema.unwrap_or_else(|| folder.join("schema.toml"));
-            enforce::run(&schema_path, &folder, fix, exclude.as_deref())
+            enforce::run(&schema_path, &folder, fix, exclude.as_deref(), depth)
         }
         Commands::Query {
             expression,
             folder,
             verbose,
-        } => query::run(&expression, &folder, verbose),
-        Commands::Today { folder } => sr::today(&folder),
+            depth,
+        } => query::run(&expression, &folder, verbose, depth),
+        Commands::Today { folder, depth } => sr::today(&folder, depth),
         Commands::Review { file, quality } => sr::review(&file, quality),
         Commands::InitSr {
             file,
             folder,
             review_type,
-        } => sr::init_sr(file.as_deref(), folder.as_deref(), &review_type),
-        Commands::Stats { folder } => sr::stats(&folder),
+            depth,
+        } => sr::init_sr(file.as_deref(), folder.as_deref(), &review_type, depth),
+        Commands::Stats { folder, depth } => sr::stats(&folder, depth),
     };
     if let Err(e) = result {
         eprintln!("Error: {e}");

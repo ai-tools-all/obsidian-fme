@@ -200,13 +200,13 @@ pub fn read_raw(path: &Path) -> Result<String, String> {
         .map_err(|e| format!("Cannot read {}: {e}", path.display()))
 }
 
-pub fn collect_md_files(folder: &Path) -> Vec<std::path::PathBuf> {
+pub fn collect_md_files(folder: &Path, depth: usize) -> Vec<std::path::PathBuf> {
+    let mut walker = walkdir::WalkDir::new(folder);
+    if depth > 0 {
+        walker = walker.max_depth(depth);
+    }
     let mut files = Vec::new();
-    for entry in walkdir::WalkDir::new(folder)
-        .max_depth(1)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
+    for entry in walker.into_iter().filter_map(|e| e.ok()) {
         let p = entry.path();
         if p.is_file()
             && p.extension().is_some_and(|ext| ext == "md")

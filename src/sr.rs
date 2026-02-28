@@ -119,7 +119,7 @@ pub fn review(file: &Path, quality: u8) -> Result<(), String> {
     Ok(())
 }
 
-pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str) -> Result<(), String> {
+pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str, depth: usize) -> Result<(), String> {
     if file.is_none() && folder.is_none() {
         return Err("Provide --file or --folder".into());
     }
@@ -127,7 +127,7 @@ pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str) ->
     let files: Vec<std::path::PathBuf> = if let Some(f) = file {
         vec![f.to_path_buf()]
     } else {
-        frontmatter::collect_md_files(folder.unwrap())
+        frontmatter::collect_md_files(folder.unwrap(), depth)
     };
 
     let today = today_date().format("%Y-%m-%d").to_string();
@@ -171,8 +171,8 @@ pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str) ->
     Ok(())
 }
 
-pub fn today(folder: &Path) -> Result<(), String> {
-    let files = frontmatter::collect_md_files(folder);
+pub fn today(folder: &Path, depth: usize) -> Result<(), String> {
+    let files = frontmatter::collect_md_files(folder, depth);
     let today = today_date();
     let mut rows: Vec<(i64, display::TableRow)> = Vec::new();
 
@@ -223,8 +223,8 @@ pub fn today(folder: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub fn stats(folder: &Path) -> Result<(), String> {
-    let files = frontmatter::collect_md_files(folder);
+pub fn stats(folder: &Path, depth: usize) -> Result<(), String> {
+    let files = frontmatter::collect_md_files(folder, depth);
     let today = today_date();
     let week_start = today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64);
 

@@ -145,13 +145,13 @@ fn is_excluded(filename: &str, patterns: &[String]) -> bool {
     patterns.iter().any(|p| matches_pattern(filename, p))
 }
 
-pub fn run(schema_path: &Path, folder: &Path, fix: bool, exclude: Option<&str>) -> Result<(), String> {
+pub fn run(schema_path: &Path, folder: &Path, fix: bool, exclude: Option<&str>, depth: usize) -> Result<(), String> {
     let schema_content = std::fs::read_to_string(schema_path)
         .map_err(|e| format!("Cannot read schema {}: {e}", schema_path.display()))?;
     let schema: Schema = toml::from_str(&schema_content)
         .map_err(|e| format!("Invalid schema TOML: {e}"))?;
 
-    let files = frontmatter::collect_md_files(folder);
+    let files = frontmatter::collect_md_files(folder, depth);
     if files.is_empty() {
         return Err("No .md files found".to_string());
     }
