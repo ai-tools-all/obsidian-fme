@@ -1,4 +1,4 @@
-## [unreleased]
+## [0.9.1] - 2026-02-28
 
 ### 🚀 Features
 
@@ -6,6 +6,7 @@
 - Add --fix and --exclude flags to enforce command
 - Hint on --fix when allowed_values has no default; add query DSL tests
 - Add --depth parameter for recursive directory scanning
+- Integrate git-cliff for automated changelog generation
 
 ### 🐛 Bug Fixes
 
