@@ -16,11 +16,15 @@ echo "==> $BINARY: $CURRENT → $NEW"
 
 sed -i "0,/version = \"$CURRENT\"/s//version = \"$NEW\"/" Cargo.toml
 
+echo "==> Building release..."
+cargo build --release
+
 echo "==> Generating changelog..."
 git-cliff --tag "v$NEW" -o CHANGELOG.md
 
-echo "==> Building release..."
-cargo build --release
+echo "==> Committing release..."
+git add Cargo.toml Cargo.lock CHANGELOG.md
+git commit -m "chore: release v$NEW"
 
 echo "==> Installing to ~/bin..."
 rm -f ~/bin/"$BINARY" && cp target/release/"$BINARY" ~/bin/"$BINARY"
