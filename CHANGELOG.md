@@ -1,3 +1,12 @@
+## [0.9.3] - 2026-03-03
+
+### 🐛 Bug Fixes
+
+- *(sr)* Show relative path instead of filename in stats and today
+
+### ⚙️ Miscellaneous Tasks
+
+- Update Cargo.lock
 ## [0.9.2] - 2026-03-03
 
 ### 🚀 Features
@@ -46,3 +55,4 @@
 - Bump version to 0.9.1
 - Updated cargo.lock
 - Restructure release scripts into scripts/ with shared helper
+- *(release)* Bump version to 0.9.2 and generate changelog
