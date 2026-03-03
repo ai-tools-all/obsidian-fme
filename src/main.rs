@@ -1,7 +1,8 @@
-mod display;
 mod enforce;
 mod frontmatter;
+mod model;
 mod query;
+mod render;
 mod sr;
 
 use clap::{Parser, Subcommand};
@@ -17,9 +18,13 @@ use std::path::PathBuf;
   md-fme query "difficulty = hard AND status = completed" --folder .
   md-fme today --folder .
   md-fme review --file mistakes/133_clone_graph.md --quality 4
-  md-fme stats --folder ."#
+  md-fme stats --folder .
+  md-fme stats --folder . --json"#
 )]
 struct Cli {
+    /// Output as JSON (applies to all commands)
+    #[arg(long, global = true)]
+    json: bool,
     #[command(subcommand)]
     command: Commands,
 }
@@ -257,26 +262,21 @@ Scans all .md files with sr: frontmatter and displays:
 
 fn main() {
     let cli = Cli::parse();
+    let json = cli.json;
     let result = match cli.command {
         Commands::Enforce { schema, folder, fix, exclude, depth } => {
             let schema_path = schema.unwrap_or_else(|| folder.join("schema.toml"));
-            enforce::run(&schema_path, &folder, fix, exclude.as_deref(), depth)
+            enforce::run(&schema_path, &folder, fix, exclude.as_deref(), depth, json)
         }
-        Commands::Query {
-            expression,
-            folder,
-            verbose,
-            depth,
-        } => query::run(&expression, &folder, verbose, depth),
-        Commands::Today { folder, depth } => sr::today(&folder, depth),
-        Commands::Review { file, quality } => sr::review(&file, quality),
-        Commands::InitSr {
-            file,
-            folder,
-            review_type,
-            depth,
-        } => sr::init_sr(file.as_deref(), folder.as_deref(), &review_type, depth),
-        Commands::Stats { folder, depth } => sr::stats(&folder, depth),
+        Commands::Query { expression, folder, verbose, depth } => {
+            query::run(&expression, &folder, verbose, depth, json)
+        }
+        Commands::Today { folder, depth } => sr::today(&folder, depth, json),
+        Commands::Review { file, quality } => sr::review(&file, quality, json),
+        Commands::InitSr { file, folder, review_type, depth } => {
+            sr::init_sr(file.as_deref(), folder.as_deref(), &review_type, depth, json)
+        }
+        Commands::Stats { folder, depth } => sr::stats(&folder, depth, json),
     };
     if let Err(e) = result {
         eprintln!("Error: {e}");

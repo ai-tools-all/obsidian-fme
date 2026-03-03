@@ -1,5 +1,4 @@
-use crate::frontmatter;
-use colored::Colorize;
+use crate::{frontmatter, model::*, render};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -36,10 +35,7 @@ fn validate(fm: &toml::Value, schema: &Schema) -> Vec<String> {
                 if let Some(allowed) = &field_def.allowed_values {
                     let s = frontmatter::value_to_string(v);
                     if !allowed.contains(&s) {
-                        errors.push(format!(
-                            "`{field_name}` = \"{s}\" not in {:?}",
-                            allowed
-                        ));
+                        errors.push(format!("`{field_name}` = \"{s}\" not in {:?}", allowed));
                     }
                 }
                 if let Some(fmt) = &field_def.format {
@@ -131,11 +127,9 @@ fn parse_exclude_patterns(exclude: Option<&str>) -> Vec<String> {
 
 fn matches_pattern(filename: &str, pattern: &str) -> bool {
     if pattern.starts_with('*') {
-        let suffix = &pattern[1..];
-        filename.ends_with(suffix)
+        filename.ends_with(&pattern[1..])
     } else if pattern.ends_with('*') {
-        let prefix = &pattern[..pattern.len() - 1];
-        filename.starts_with(prefix)
+        filename.starts_with(&pattern[..pattern.len() - 1])
     } else {
         filename == pattern
     }
@@ -145,11 +139,38 @@ fn is_excluded(filename: &str, patterns: &[String]) -> bool {
     patterns.iter().any(|p| matches_pattern(filename, p))
 }
 
-pub fn run(schema_path: &Path, folder: &Path, fix: bool, exclude: Option<&str>, depth: usize) -> Result<(), String> {
+fn hint_for_unfixable(fm: &toml::Value, schema: &Schema) -> Vec<String> {
+    let mut hints = Vec::new();
+    for (field_name, field_def) in &schema.fields {
+        if let Some(allowed) = &field_def.allowed_values {
+            if field_def.default.is_none() {
+                if let Some(v) = frontmatter::get_nested(fm, field_name) {
+                    let s = frontmatter::value_to_string(v);
+                    if !allowed.contains(&s) {
+                        hints.push(format!(
+                            "HINT: `{field_name}` has allowed_values but no default — add `default = \"{}\"` to [fields.{field_name}] in schema.toml to enable --fix",
+                            allowed[0]
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    hints
+}
+
+pub fn run(
+    schema_path: &Path,
+    folder: &Path,
+    fix: bool,
+    exclude: Option<&str>,
+    depth: usize,
+    json: bool,
+) -> Result<(), String> {
     let schema_content = std::fs::read_to_string(schema_path)
         .map_err(|e| format!("Cannot read schema {}: {e}", schema_path.display()))?;
-    let schema: Schema = toml::from_str(&schema_content)
-        .map_err(|e| format!("Invalid schema TOML: {e}"))?;
+    let schema: Schema =
+        toml::from_str(&schema_content).map_err(|e| format!("Invalid schema TOML: {e}"))?;
 
     let files = frontmatter::collect_md_files(folder, depth);
     if files.is_empty() {
@@ -159,38 +180,53 @@ pub fn run(schema_path: &Path, folder: &Path, fix: bool, exclude: Option<&str>, 
     let exclude_patterns = parse_exclude_patterns(exclude);
     let mut pass = 0u32;
     let mut fail = 0u32;
+    let mut results: Vec<EnforceFile> = Vec::new();
 
     for file in &files {
-        let fname = file.file_name().unwrap_or_default().to_string_lossy();
+        let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
 
         if is_excluded(&fname, &exclude_patterns) {
-            println!("{} {} — excluded", "SKIP".yellow().bold(), fname);
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Skip,
+                errors: vec![],
+                fixed: vec![],
+            });
             continue;
         }
-        let doc = match frontmatter::read_file(file) {
-            Ok(d) => d,
+
+        let (doc, was_created, created_fields) = match frontmatter::read_file(file) {
+            Ok(d) => (d, false, vec![]),
             Err(_) => {
                 if !fix {
                     fail += 1;
-                    println!("{} {} — no frontmatter", "FAIL".red().bold(), fname);
+                    results.push(EnforceFile {
+                        file: fname,
+                        status: FileStatus::Fail,
+                        errors: vec!["no frontmatter".into()],
+                        fixed: vec![],
+                    });
                     continue;
                 }
                 match create_frontmatter(file, &schema) {
                     Ok(d) => {
-                        let all_fields: Vec<String> = schema.fields.keys().filter(|k| schema.fields[k.as_str()].mandatory).cloned().collect();
-                        let mut added = all_fields;
+                        let mut added: Vec<String> = schema
+                            .fields
+                            .keys()
+                            .filter(|k| schema.fields[k.as_str()].mandatory)
+                            .cloned()
+                            .collect();
                         added.sort();
-                        println!(
-                            "{} {} — created frontmatter, added: {}",
-                            "FIXED".yellow().bold(),
-                            fname,
-                            added.join(", ")
-                        );
-                        d
+                        (d, true, added)
                     }
                     Err(e) => {
                         fail += 1;
-                        println!("{} {} — fix error: {e}", "FAIL".red().bold(), fname);
+                        results.push(EnforceFile {
+                            file: fname,
+                            status: FileStatus::Fail,
+                            errors: vec![format!("fix error: {e}")],
+                            fixed: vec![],
+                        });
                         continue;
                     }
                 }
@@ -198,93 +234,93 @@ pub fn run(schema_path: &Path, folder: &Path, fix: bool, exclude: Option<&str>, 
         };
 
         let errors = validate(&doc.frontmatter, &schema);
-
         if errors.is_empty() {
             pass += 1;
-            println!("{} {}", "PASS".green().bold(), fname);
+            if was_created {
+                let mut fixed = vec!["created frontmatter".to_string()];
+                fixed.extend(created_fields);
+                results.push(EnforceFile { file: fname, status: FileStatus::Fixed, errors: vec![], fixed });
+            } else {
+                results.push(EnforceFile { file: fname, status: FileStatus::Pass, errors: vec![], fixed: vec![] });
+            }
             continue;
         }
 
         if !fix {
             fail += 1;
-            println!("{} {} — {}", "FAIL".red().bold(), fname, errors.join("; "));
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fail,
+                errors,
+                fixed: vec![],
+            });
             continue;
         }
 
         let missing = find_fixable_fields(&doc.frontmatter, &schema);
         if missing.is_empty() {
             fail += 1;
-            println!("{} {} — {}", "FAIL".red().bold(), fname, errors.join("; "));
-            for (field_name, field_def) in &schema.fields {
-                if let Some(allowed) = &field_def.allowed_values {
-                    if field_def.default.is_none() {
-                        if let Some(v) = frontmatter::get_nested(&doc.frontmatter, field_name) {
-                            let s = frontmatter::value_to_string(v);
-                            if !allowed.contains(&s) {
-                                println!(
-                                    "  {} `{}` has allowed_values but no default — add `default = \"{}\"` to [fields.{}] in schema.toml to enable --fix",
-                                    "HINT:".cyan().bold(),
-                                    field_name,
-                                    allowed[0],
-                                    field_name,
-                                );
-                            }
-                        }
-                    }
-                }
-            }
+            let mut all_errors = errors;
+            all_errors.extend(hint_for_unfixable(&doc.frontmatter, &schema));
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fail,
+                errors: all_errors,
+                fixed: vec![],
+            });
             continue;
         }
 
         if let Err(e) = apply_fix(file, &doc, &schema, &missing) {
             fail += 1;
-            println!("{} {} — fix error: {e}", "FAIL".red().bold(), fname);
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fail,
+                errors: vec![format!("fix error: {e}")],
+                fixed: vec![],
+            });
             continue;
         }
 
-        let mut added: Vec<String> = missing.clone();
+        let mut added = missing.clone();
         added.sort();
-        println!(
-            "{} {} — added: {}",
-            "FIXED".yellow().bold(),
-            fname,
-            added.join(", ")
-        );
 
         let re_doc = match frontmatter::read_file(file) {
             Ok(d) => d,
             Err(_) => {
                 fail += 1;
-                println!("{} {} — re-read failed after fix", "FAIL".red().bold(), fname);
+                results.push(EnforceFile {
+                    file: fname,
+                    status: FileStatus::Fail,
+                    errors: vec!["re-read failed after fix".into()],
+                    fixed: added,
+                });
                 continue;
             }
         };
+
         let re_errors = validate(&re_doc.frontmatter, &schema);
         if re_errors.is_empty() {
             pass += 1;
-            println!("{} {}", "PASS".green().bold(), fname);
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fixed,
+                errors: vec![],
+                fixed: added,
+            });
         } else {
             fail += 1;
-            println!(
-                "{} {} — {}",
-                "FAIL".red().bold(),
-                fname,
-                re_errors.join("; ")
-            );
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fail,
+                errors: re_errors,
+                fixed: added,
+            });
         }
     }
 
-    let total = pass + fail;
-    println!(
-        "\n{} passed, {} failed out of {} files",
-        pass.to_string().green(),
-        if fail > 0 {
-            fail.to_string().red().to_string()
-        } else {
-            "0".to_string()
-        },
-        total
-    );
+    let result = EnforceResult { passed: pass, failed: fail, results };
+    render::get(json).enforce(&result);
 
     if fail > 0 {
         Err(format!("{fail} file(s) failed validation"))

@@ -280,13 +280,22 @@ pub fn parse_and_eval(expression: &str, fm: &Value) -> Result<bool, String> {
     Ok(evaluate(&expr, fm))
 }
 
-pub fn run(expression: &str, folder: &Path, verbose: bool, depth: usize) -> Result<(), String> {
+pub fn run(
+    expression: &str,
+    folder: &Path,
+    verbose: bool,
+    depth: usize,
+    json: bool,
+) -> Result<(), String> {
+    use crate::{model::*, render};
+
     let files = frontmatter::collect_md_files(folder, depth);
     if files.is_empty() {
         return Err("No .md files found".to_string());
     }
 
-    let mut found = 0;
+    let mut matches: Vec<QueryMatch> = Vec::new();
+
     for file in &files {
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
@@ -299,22 +308,18 @@ pub fn run(expression: &str, folder: &Path, verbose: bool, depth: usize) -> Resu
         };
         match parse_and_eval(expression, &doc.frontmatter) {
             Ok(true) => {
-                found += 1;
-                if verbose {
-                    let fname = file.file_name().unwrap_or_default().to_string_lossy();
-                    println!("{fname}");
-                    if let Some(table) = doc.frontmatter.as_table() {
-                        for (k, v) in table {
-                            println!(
-                                "  {}: {}",
-                                k,
-                                frontmatter::value_to_string(v)
-                            );
-                        }
-                    }
+                let path = file.display().to_string();
+                let fields = if verbose {
+                    doc.frontmatter.as_table().map(|table| {
+                        table
+                            .iter()
+                            .map(|(k, v)| (k.clone(), frontmatter::value_to_string(v)))
+                            .collect()
+                    })
                 } else {
-                    println!("{}", file.display());
-                }
+                    None
+                };
+                matches.push(QueryMatch { path, fields });
             }
             Ok(false) => {}
             Err(e) => {
@@ -325,8 +330,7 @@ pub fn run(expression: &str, folder: &Path, verbose: bool, depth: usize) -> Resu
         }
     }
 
-    if found == 0 {
-        println!("No matches.");
-    }
+    let result = QueryResult { count: matches.len(), matches };
+    render::get(json).query(&result);
     Ok(())
 }

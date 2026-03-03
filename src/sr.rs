@@ -1,4 +1,4 @@
-use crate::{display, frontmatter};
+use crate::{frontmatter, model::*, render};
 use chrono::{Datelike, Local, NaiveDate};
 use std::path::Path;
 use toml::Value;
@@ -36,25 +36,14 @@ fn extract_sr(fm: &Value) -> Option<SrData> {
         .unwrap_or(0);
     let last_reviewed = sr.get("last_reviewed").and_then(|v| {
         let s = frontmatter::value_to_string(v);
-        if s == "~" || s == "null" {
-            None
-        } else {
-            parse_sr_date(&s)
-        }
+        if s == "~" || s == "null" { None } else { parse_sr_date(&s) }
     });
-    Some(SrData {
-        next_review,
-        interval,
-        ease,
-        reps,
-        last_reviewed,
-    })
+    Some(SrData { next_review, interval, ease, reps, last_reviewed })
 }
 
 fn sm2(quality: u8, sr: &SrData) -> (f64, f64, u32) {
     let q = quality as f64;
     let new_ease = (sr.ease + (0.1 - (5.0 - q) * (0.08 + (5.0 - q) * 0.02))).max(1.3);
-
     if quality < 3 {
         (1.0, new_ease, 0)
     } else {
@@ -82,7 +71,7 @@ fn build_sr_table(next: &str, interval: i64, ease: f64, reps: u32, last_reviewed
     Value::Table(sr)
 }
 
-pub fn review(file: &Path, quality: u8) -> Result<(), String> {
+pub fn review(file: &Path, quality: u8, json: bool) -> Result<(), String> {
     if quality > 5 {
         return Err("Quality must be 0-5".into());
     }
@@ -109,17 +98,25 @@ pub fn review(file: &Path, quality: u8) -> Result<(), String> {
     let new_raw = frontmatter::replace_frontmatter(&doc.raw, &fm);
     frontmatter::write_raw(file, &new_raw)?;
 
-    println!(
-        "Reviewed {} (q={quality}) → interval={}, ease={:.2}, reps={reps}, next={}",
-        file.display(),
-        interval.round() as i64,
+    let result = ReviewResult {
+        file: file.display().to_string(),
+        quality,
+        interval: interval.round() as i64,
         ease,
-        next.format("%Y-%m-%d")
-    );
+        reps,
+        next_review: next.format("%Y-%m-%d").to_string(),
+    };
+    render::get(json).review(&result);
     Ok(())
 }
 
-pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str, depth: usize) -> Result<(), String> {
+pub fn init_sr(
+    file: Option<&Path>,
+    folder: Option<&Path>,
+    review_type: &str,
+    depth: usize,
+    json: bool,
+) -> Result<(), String> {
     if file.is_none() && folder.is_none() {
         return Err("Provide --file or --folder".into());
     }
@@ -131,7 +128,7 @@ pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str, de
     };
 
     let today = today_date().format("%Y-%m-%d").to_string();
-    let mut count = 0;
+    let mut initialized: Vec<String> = Vec::new();
 
     for f in &files {
         let raw = match frontmatter::read_raw(f) {
@@ -141,40 +138,36 @@ pub fn init_sr(file: Option<&Path>, folder: Option<&Path>, review_type: &str, de
                 continue;
             }
         };
-
         let doc = match frontmatter::parse(&raw) {
             Some(d) => d,
             None => continue,
         };
-
         if frontmatter::has_sr_block(&doc.frontmatter) {
             continue;
         }
 
         let mut fm = doc.frontmatter.clone();
         let table = fm.as_table_mut().unwrap();
-
         let sr_table = build_sr_table(&today, 1, 2.50, 0, "~");
         table.insert("sr".into(), sr_table);
-
         if !table.contains_key("review_type") {
             table.insert("review_type".into(), Value::String(review_type.into()));
         }
 
         let new_raw = frontmatter::replace_frontmatter(&raw, &fm);
         frontmatter::write_raw(f, &new_raw)?;
-        count += 1;
-        println!("Initialized SR: {}", f.display());
+        initialized.push(f.display().to_string());
     }
 
-    println!("{count} file(s) initialized");
+    let result = InitResult { count: initialized.len(), files: initialized };
+    render::get(json).init_sr(&result);
     Ok(())
 }
 
-pub fn today(folder: &Path, depth: usize) -> Result<(), String> {
+pub fn today(folder: &Path, depth: usize, json: bool) -> Result<(), String> {
     let files = frontmatter::collect_md_files(folder, depth);
     let today = today_date();
-    let mut rows: Vec<(i64, display::TableRow)> = Vec::new();
+    let mut rows: Vec<(i64, SrItem)> = Vec::new();
 
     for file in &files {
         let doc = match frontmatter::read_file(file) {
@@ -199,35 +192,37 @@ pub fn today(folder: &Path, depth: usize) -> Result<(), String> {
             .get("review_type")
             .map(frontmatter::value_to_string)
             .unwrap_or_else(|| "recall".into());
-        let fname = file.strip_prefix(folder).unwrap_or(file).to_string_lossy().to_string();
-        rows.push((
-            days_diff,
-            display::TableRow {
-                file: fname,
-                review_type,
-                days_info,
-            },
-        ));
+        let path = file.strip_prefix(folder).unwrap_or(file).to_string_lossy().to_string();
+        rows.push((days_diff, SrItem {
+            path,
+            review_type,
+            days_overdue: days_diff,
+            days_info,
+            ease: sr.ease,
+            next_review: sr.next_review.format("%Y-%m-%d").to_string(),
+        }));
     }
 
     rows.sort_by_key(|r| std::cmp::Reverse(r.0));
-    let table_rows: Vec<display::TableRow> = rows.into_iter().map(|(_, r)| r).collect();
-    display::print_today_table(&table_rows);
+    let items: Vec<SrItem> = rows.into_iter().map(|(_, item)| item).collect();
+    render::get(json).today(&items);
     Ok(())
 }
 
-pub fn stats(folder: &Path, depth: usize) -> Result<(), String> {
+pub fn stats(folder: &Path, depth: usize, json: bool) -> Result<(), String> {
     let files = frontmatter::collect_md_files(folder, depth);
     let today = today_date();
-    let week_start = today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64);
+    let week_start =
+        today - chrono::Duration::days(today.weekday().num_days_from_monday() as i64);
 
     let mut total = 0usize;
     let mut due_today = 0usize;
     let mut overdue = 0usize;
     let mut reviews_this_week = 0usize;
     let mut review_dates: Vec<NaiveDate> = Vec::new();
-    let mut weakest: Vec<(String, f64)> = Vec::new();
-    let mut upcoming_map: std::collections::HashMap<NaiveDate, usize> = std::collections::HashMap::new();
+    let mut weakest: Vec<WeakItem> = Vec::new();
+    let mut upcoming_map: std::collections::HashMap<NaiveDate, usize> =
+        std::collections::HashMap::new();
 
     for file in &files {
         let doc = match frontmatter::read_file(file) {
@@ -239,24 +234,18 @@ pub fn stats(folder: &Path, depth: usize) -> Result<(), String> {
             None => continue,
         };
         total += 1;
-        let fname = file.strip_prefix(folder).unwrap_or(file).to_string_lossy().to_string();
+        let path = file.strip_prefix(folder).unwrap_or(file).to_string_lossy().to_string();
 
         let days_diff = (today - sr.next_review).num_days();
-        if days_diff >= 0 {
-            due_today += 1;
-        }
-        if days_diff > 0 {
-            overdue += 1;
-        }
+        if days_diff >= 0 { due_today += 1; }
+        if days_diff > 0 { overdue += 1; }
 
         if let Some(lr) = sr.last_reviewed {
-            if lr >= week_start {
-                reviews_this_week += 1;
-            }
+            if lr >= week_start { reviews_this_week += 1; }
             review_dates.push(lr);
         }
 
-        weakest.push((fname, sr.ease));
+        weakest.push(WeakItem { path, ease: sr.ease });
 
         if sr.next_review > today && sr.next_review <= today + chrono::Duration::days(7) {
             *upcoming_map.entry(sr.next_review).or_insert(0) += 1;
@@ -279,24 +268,27 @@ pub fn stats(folder: &Path, depth: usize) -> Result<(), String> {
         }
     }
 
-    weakest.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+    weakest.sort_by(|a, b| a.ease.partial_cmp(&b.ease).unwrap_or(std::cmp::Ordering::Equal));
     weakest.truncate(5);
 
-    let mut upcoming: Vec<(String, usize)> = Vec::new();
-    for i in 0..7 {
-        let d = today + chrono::Duration::days(i + 1);
-        let count = upcoming_map.get(&d).copied().unwrap_or(0);
-        upcoming.push((d.format("%Y-%m-%d").to_string(), count));
-    }
+    let upcoming_7_days: Vec<UpcomingDay> = (1..=7)
+        .map(|i| {
+            let d = today + chrono::Duration::days(i);
+            UpcomingDay {
+                date: d.format("%Y-%m-%d").to_string(),
+                count: upcoming_map.get(&d).copied().unwrap_or(0),
+            }
+        })
+        .collect();
 
-    display::print_stats(
+    render::get(json).stats(&SrStats {
         total,
         due_today,
         overdue,
         reviews_this_week,
         streak,
-        &weakest,
-        &upcoming,
-    );
+        weakest,
+        upcoming_7_days,
+    });
     Ok(())
 }
