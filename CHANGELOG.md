@@ -1,4 +1,4 @@
-## [0.9.1] - 2026-02-28
+## [0.9.2] - 2026-03-03
 
 ### 🚀 Features
 
@@ -15,6 +15,8 @@
 - Unify -h and help output by dropping long_about
 - Use rm -f before cp in ship.sh to avoid stale binary
 - *(query)* Suppress warnings by default, show only with --verbose
+- Commit Cargo.lock and changelog in ship.sh before release
+- *(sr)* Suppress verbose 'No frontmatter' warnings in stats and today
 
 ### 📚 Documentation
 
@@ -41,3 +43,6 @@
 - Bump version to 0.8.1
 - Bump version to 0.8.2
 - Bump version to 0.9.0
+- Bump version to 0.9.1
+- Updated cargo.lock
+- Restructure release scripts into scripts/ with shared helper
