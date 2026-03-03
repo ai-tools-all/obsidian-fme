@@ -10,6 +10,7 @@ NEW=$1
 
 info "Checking working tree..."
 require_clean_tree
+require_tracked_and_clean Cargo.toml Cargo.lock CHANGELOG.md cliff.toml README.md
 
 info "$BINARY: $VERSION → $NEW"
 
