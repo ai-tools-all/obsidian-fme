@@ -1,3 +1,8 @@
+## [0.9.4] - 2026-03-03
+
+### 🚀 Features
+
+- Add render layer with tree view and --json global flag
 ## [0.9.3] - 2026-03-03
 
 ### 🐛 Bug Fixes
@@ -7,6 +12,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Update Cargo.lock
+- *(release)* Bump version to 0.9.3 and generate changelog
 ## [0.9.2] - 2026-03-03
 
 ### 🚀 Features
