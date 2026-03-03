@@ -179,10 +179,7 @@ pub fn today(folder: &Path, depth: usize) -> Result<(), String> {
     for file in &files {
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
-            Err(e) => {
-                eprintln!("Warning: skipping {}: {e}", file.display());
-                continue;
-            }
+            Err(_) => continue,
         };
         let sr = match extract_sr(&doc.frontmatter) {
             Some(s) => s,
@@ -239,10 +236,7 @@ pub fn stats(folder: &Path, depth: usize) -> Result<(), String> {
     for file in &files {
         let doc = match frontmatter::read_file(file) {
             Ok(d) => d,
-            Err(e) => {
-                eprintln!("Warning: skipping {}: {e}", file.display());
-                continue;
-            }
+            Err(_) => continue,
         };
         let sr = match extract_sr(&doc.frontmatter) {
             Some(s) => s,
