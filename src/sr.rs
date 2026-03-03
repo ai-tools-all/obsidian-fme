@@ -199,11 +199,7 @@ pub fn today(folder: &Path, depth: usize) -> Result<(), String> {
             .get("review_type")
             .map(frontmatter::value_to_string)
             .unwrap_or_else(|| "recall".into());
-        let fname = file
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let fname = file.strip_prefix(folder).unwrap_or(file).to_string_lossy().to_string();
         rows.push((
             days_diff,
             display::TableRow {
@@ -243,11 +239,7 @@ pub fn stats(folder: &Path, depth: usize) -> Result<(), String> {
             None => continue,
         };
         total += 1;
-        let fname = file
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
+        let fname = file.strip_prefix(folder).unwrap_or(file).to_string_lossy().to_string();
 
         let days_diff = (today - sr.next_review).num_days();
         if days_diff >= 0 {
