@@ -12,4 +12,9 @@ cp "$REPO_ROOT/target/release/$BINARY" ~/bin/"$BINARY"
 INSTALLED=$("$BINARY" --version 2>&1 || true)
 info "Installed: $INSTALLED"
 
-echo "$INSTALLED" | grep -q "$VERSION" && info "Done." || die "Version mismatch — expected $VERSION, got: $INSTALLED"
+echo "$INSTALLED" | grep -q "$VERSION" || die "Version mismatch — expected $VERSION, got: $INSTALLED"
+
+info "Checking working tree is clean after build..."
+require_clean_tree
+
+info "Done."

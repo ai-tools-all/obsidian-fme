@@ -16,6 +16,10 @@ info "$BINARY: $VERSION → $NEW"
 
 sed -i "0,/version = \"$VERSION\"/s//version = \"$NEW\"/" "$REPO_ROOT/Cargo.toml"
 
+info "Updating Cargo.lock to $NEW..."
+cargo update --manifest-path "$REPO_ROOT/Cargo.toml" -p "$BINARY" 2>/dev/null || \
+    cargo generate-lockfile --manifest-path "$REPO_ROOT/Cargo.toml"
+
 info "Generating changelog..."
 git -C "$REPO_ROOT" cliff --tag "v$NEW" -o "$REPO_ROOT/CHANGELOG.md"
 
