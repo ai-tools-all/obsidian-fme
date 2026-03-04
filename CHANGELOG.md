@@ -1,8 +1,25 @@
+## [0.9.5] - 2026-03-04
+
+### 🚀 Features
+
+- *(enforce)* Add --file flag to validate a single markdown file
+
+### 🐛 Bug Fixes
+
+- *(scripts)* Require cliff.toml and README.md tracked and clean before release
+
+### ⚙️ Miscellaneous Tasks
+
+- Update Cargo.lock
 ## [0.9.4] - 2026-03-03
 
 ### 🚀 Features
 
 - Add render layer with tree view and --json global flag
+
+### ⚙️ Miscellaneous Tasks
+
+- *(release)* Bump version to 0.9.4 and generate changelog
 ## [0.9.3] - 2026-03-03
 
 ### 🐛 Bug Fixes
