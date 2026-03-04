@@ -59,12 +59,15 @@ Schema format (schema.toml):
   md-fme enforce --schema ./custom-schema.toml --folder ./mistakes/"#
     )]
     Enforce {
-        /// Schema file (defaults to <folder>/schema.toml)
+        /// Schema file (defaults to <folder>/schema.toml or <file's parent>/schema.toml)
         #[arg(long)]
         schema: Option<PathBuf>,
-        /// Folder to scan
-        #[arg(long)]
-        folder: PathBuf,
+        /// Single file to validate (mutually exclusive with --folder)
+        #[arg(long, conflicts_with = "folder")]
+        file: Option<PathBuf>,
+        /// Folder to scan (mutually exclusive with --file)
+        #[arg(long, conflicts_with = "file")]
+        folder: Option<PathBuf>,
         /// Auto-fix missing mandatory fields using schema defaults
         #[arg(long)]
         fix: bool,
@@ -264,10 +267,19 @@ fn main() {
     let cli = Cli::parse();
     let json = cli.json;
     let result = match cli.command {
-        Commands::Enforce { schema, folder, fix, exclude, depth } => {
-            let schema_path = schema.unwrap_or_else(|| folder.join("schema.toml"));
-            enforce::run(&schema_path, &folder, fix, exclude.as_deref(), depth, json)
-        }
+        Commands::Enforce { schema, file, folder, fix, exclude, depth } => match (file, folder) {
+            (Some(f), None) => {
+                let schema_path = schema.unwrap_or_else(|| {
+                    f.parent().unwrap_or(std::path::Path::new(".")).join("schema.toml")
+                });
+                enforce::run_single_file(&schema_path, &f, fix, json)
+            }
+            (None, Some(dir)) => {
+                let schema_path = schema.unwrap_or_else(|| dir.join("schema.toml"));
+                enforce::run(&schema_path, &dir, fix, exclude.as_deref(), depth, json)
+            }
+            _ => Err("Must specify either --file or --folder".to_string()),
+        },
         Commands::Query { expression, folder, verbose, depth } => {
             query::run(&expression, &folder, verbose, depth, json)
         }

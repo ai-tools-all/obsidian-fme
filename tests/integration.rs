@@ -154,6 +154,122 @@ fn with_fix_temp_dir(test_name: &str, md_content: &str, f: impl FnOnce(&Path, &P
     let _ = fs::remove_dir_all(&dir);
 }
 
+fn with_single_file_temp(
+    test_name: &str,
+    md_content: &str,
+    schema_in_parent: bool,
+    f: impl FnOnce(&Path, &Path), // (schema_path, md_path)
+) {
+    let dir = std::env::temp_dir().join(format!("fme_sf_{test_name}_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let schema_dst = dir.join("schema.toml");
+    if schema_in_parent {
+        fs::copy(Path::new("tests/fixtures/fix_schema.toml"), &schema_dst).unwrap();
+    }
+    let md_path = dir.join("note.md");
+    fs::write(&md_path, md_content).unwrap();
+    f(&schema_dst, &md_path);
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn enforce_single_file_pass() {
+    let valid = "---\nstatus: attempted\ndate: 2026-01-01\ntype: leetcode\n---\n\n## Body\n";
+    with_single_file_temp("pass", valid, true, |schema, md| {
+        let output = fme_bin()
+            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("PASS"), "Should pass: {stdout}");
+        assert!(output.status.success(), "Exit 0: {}", String::from_utf8_lossy(&output.stderr));
+    });
+}
+
+#[test]
+fn enforce_single_file_fail() {
+    let invalid = "---\ntags:\n  - test\n---\n\n## Body\n";
+    with_single_file_temp("fail", invalid, true, |schema, md| {
+        let output = fme_bin()
+            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("FAIL"), "Should fail: {stdout}");
+        assert!(!output.status.success(), "Should exit nonzero");
+    });
+}
+
+#[test]
+fn enforce_single_file_fix() {
+    let invalid = "---\ntags:\n  - test\n---\n\n## Body\n";
+    with_single_file_temp("fix", invalid, true, |schema, md| {
+        let output = fme_bin()
+            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap(), "--fix"])
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("FIXED"), "Should be fixed: {stdout}");
+        assert!(output.status.success(), "Should succeed after fix");
+
+        let after = fs::read_to_string(md).unwrap();
+        assert!(after.contains("status = \"attempted\""), "Default applied: {after}");
+        assert!(after.contains("date = \"2026-01-01\""), "Date default applied: {after}");
+    });
+}
+
+#[test]
+fn enforce_single_file_schema_auto_discovery() {
+    let valid = "---\nstatus: attempted\ndate: 2026-01-01\ntype: leetcode\n---\n\n## Body\n";
+    with_single_file_temp("autodiscover", valid, true, |_schema, md| {
+        // No --schema flag; should discover schema.toml from file's parent dir
+        let output = fme_bin()
+            .args(["enforce", "--file", md.to_str().unwrap()])
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("PASS"), "Auto-discovered schema, should pass: {stdout}");
+        assert!(output.status.success());
+    });
+}
+
+#[test]
+fn enforce_single_file_no_frontmatter_without_fix() {
+    let no_fm = "# Just a heading\n\nBody.\n";
+    with_single_file_temp("nofm", no_fm, true, |schema, md| {
+        let output = fme_bin()
+            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(stdout.contains("FAIL"), "Should fail without --fix: {stdout}");
+        assert!(stdout.contains("no frontmatter"), "Should mention no frontmatter: {stdout}");
+        assert!(!output.status.success());
+
+        let after = fs::read_to_string(md).unwrap();
+        assert_eq!(after, no_fm, "File unchanged");
+    });
+}
+
+#[test]
+fn enforce_file_and_folder_mutually_exclusive() {
+    let output = fme_bin()
+        .args(["enforce", "--file", "some.md", "--folder", "."])
+        .output()
+        .unwrap();
+    assert!(!output.status.success(), "Should fail with both --file and --folder");
+}
+
+#[test]
+fn enforce_requires_file_or_folder() {
+    let output = fme_bin()
+        .args(["enforce"])
+        .output()
+        .unwrap();
+    assert!(!output.status.success(), "Should fail with neither --file nor --folder");
+}
+
 fn with_exclude_temp_dir(
     test_name: &str,
     files: &[(&str, &str)],

@@ -159,6 +159,149 @@ fn hint_for_unfixable(fm: &toml::Value, schema: &Schema) -> Vec<String> {
     hints
 }
 
+pub fn run_single_file(
+    schema_path: &Path,
+    file: &Path,
+    fix: bool,
+    json: bool,
+) -> Result<(), String> {
+    let schema_content = std::fs::read_to_string(schema_path)
+        .map_err(|e| format!("Cannot read schema {}: {e}", schema_path.display()))?;
+    let schema: Schema =
+        toml::from_str(&schema_content).map_err(|e| format!("Invalid schema TOML: {e}"))?;
+
+    let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let mut results: Vec<EnforceFile> = Vec::new();
+    let mut pass = 0u32;
+    let mut fail = 0u32;
+
+    let (doc, was_created, created_fields) = match frontmatter::read_file(file) {
+        Ok(d) => (d, false, vec![]),
+        Err(_) => {
+            if !fix {
+                fail += 1;
+                results.push(EnforceFile {
+                    file: fname,
+                    status: FileStatus::Fail,
+                    errors: vec!["no frontmatter".into()],
+                    fixed: vec![],
+                });
+                let result = EnforceResult { passed: pass, failed: fail, results };
+                render::get(json).enforce(&result);
+                return Err("1 file(s) failed validation".to_string());
+            }
+            match create_frontmatter(file, &schema) {
+                Ok(d) => {
+                    let mut added: Vec<String> = schema
+                        .fields
+                        .keys()
+                        .filter(|k| schema.fields[k.as_str()].mandatory)
+                        .cloned()
+                        .collect();
+                    added.sort();
+                    (d, true, added)
+                }
+                Err(e) => {
+                    fail += 1;
+                    results.push(EnforceFile {
+                        file: fname,
+                        status: FileStatus::Fail,
+                        errors: vec![format!("fix error: {e}")],
+                        fixed: vec![],
+                    });
+                    let result = EnforceResult { passed: pass, failed: fail, results };
+                    render::get(json).enforce(&result);
+                    return Err("1 file(s) failed validation".to_string());
+                }
+            }
+        }
+    };
+
+    let errors = validate(&doc.frontmatter, &schema);
+    if errors.is_empty() {
+        pass += 1;
+        if was_created {
+            let mut fixed = vec!["created frontmatter".to_string()];
+            fixed.extend(created_fields);
+            results.push(EnforceFile { file: fname, status: FileStatus::Fixed, errors: vec![], fixed });
+        } else {
+            results.push(EnforceFile { file: fname, status: FileStatus::Pass, errors: vec![], fixed: vec![] });
+        }
+        let result = EnforceResult { passed: pass, failed: fail, results };
+        render::get(json).enforce(&result);
+        return Ok(());
+    }
+
+    if !fix {
+        fail += 1;
+        results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors, fixed: vec![] });
+        let result = EnforceResult { passed: pass, failed: fail, results };
+        render::get(json).enforce(&result);
+        return Err("1 file(s) failed validation".to_string());
+    }
+
+    let missing = find_fixable_fields(&doc.frontmatter, &schema);
+    if missing.is_empty() {
+        fail += 1;
+        let mut all_errors = errors;
+        all_errors.extend(hint_for_unfixable(&doc.frontmatter, &schema));
+        results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors: all_errors, fixed: vec![] });
+        let result = EnforceResult { passed: pass, failed: fail, results };
+        render::get(json).enforce(&result);
+        return Err("1 file(s) failed validation".to_string());
+    }
+
+    if let Err(e) = apply_fix(file, &doc, &schema, &missing) {
+        fail += 1;
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Fail,
+            errors: vec![format!("fix error: {e}")],
+            fixed: vec![],
+        });
+        let result = EnforceResult { passed: pass, failed: fail, results };
+        render::get(json).enforce(&result);
+        return Err("1 file(s) failed validation".to_string());
+    }
+
+    let mut added = missing.clone();
+    added.sort();
+
+    let re_doc = match frontmatter::read_file(file) {
+        Ok(d) => d,
+        Err(_) => {
+            fail += 1;
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fail,
+                errors: vec!["re-read failed after fix".into()],
+                fixed: added,
+            });
+            let result = EnforceResult { passed: pass, failed: fail, results };
+            render::get(json).enforce(&result);
+            return Err("1 file(s) failed validation".to_string());
+        }
+    };
+
+    let re_errors = validate(&re_doc.frontmatter, &schema);
+    if re_errors.is_empty() {
+        pass += 1;
+        results.push(EnforceFile { file: fname, status: FileStatus::Fixed, errors: vec![], fixed: added });
+    } else {
+        fail += 1;
+        results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors: re_errors, fixed: added });
+    }
+
+    let result = EnforceResult { passed: pass, failed: fail, results };
+    render::get(json).enforce(&result);
+
+    if fail > 0 {
+        Err("1 file(s) failed validation".to_string())
+    } else {
+        Ok(())
+    }
+}
+
 pub fn run(
     schema_path: &Path,
     folder: &Path,
