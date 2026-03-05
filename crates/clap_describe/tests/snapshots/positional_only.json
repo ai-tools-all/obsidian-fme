@@ -1,0 +1,19 @@
+{
+  "name": "positional-only",
+  "about": "Command with positional args only",
+  "usage": "positional-only <input> [output]",
+  "positional_args": [
+    {
+      "name": "input",
+      "required": true,
+      "help": "Input file path",
+      "takes_value": true
+    },
+    {
+      "name": "output",
+      "required": false,
+      "help": "Output file path",
+      "takes_value": true
+    }
+  ]
+}

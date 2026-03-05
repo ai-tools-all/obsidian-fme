@@ -1,0 +1,66 @@
+{
+  "name": "enforce",
+  "about": "Validate frontmatter against a schema",
+  "long_about": "Validate that markdown files in a folder have frontmatter matching the specified schema. Reports errors and optionally fixes them.",
+  "usage": "enforce [OPTIONS]",
+  "options": [
+    {
+      "name": "schema",
+      "short": "s",
+      "long": "schema",
+      "required": false,
+      "help": "Path to schema file",
+      "value_name": "PATH",
+      "takes_value": true
+    },
+    {
+      "name": "folder",
+      "short": "f",
+      "long": "folder",
+      "required": false,
+      "default_value": ".",
+      "help": "Folder to scan",
+      "value_name": "FOLDER",
+      "takes_value": true
+    },
+    {
+      "name": "fix",
+      "long": "fix",
+      "required": false,
+      "help": "Auto-fix issues where possible",
+      "takes_value": false
+    },
+    {
+      "name": "exclude",
+      "short": "e",
+      "long": "exclude",
+      "required": false,
+      "help": "Glob pattern to exclude",
+      "value_name": "PATTERN",
+      "takes_value": true
+    },
+    {
+      "name": "depth",
+      "short": "d",
+      "long": "depth",
+      "required": false,
+      "default_value": "10",
+      "help": "Maximum directory depth",
+      "value_name": "N",
+      "takes_value": true
+    },
+    {
+      "name": "format",
+      "long": "format",
+      "required": false,
+      "default_value": "text",
+      "possible_values": [
+        "json",
+        "text",
+        "github"
+      ],
+      "help": "Output format",
+      "takes_value": true
+    }
+  ]
+}

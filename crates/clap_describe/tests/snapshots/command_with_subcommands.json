@@ -1,0 +1,19 @@
+{
+  "name": "mycli",
+  "about": "A multi-tool CLI",
+  "usage": "mycli [COMMAND]",
+  "subcommands": [
+    {
+      "name": "init",
+      "about": "Initialize project"
+    },
+    {
+      "name": "build",
+      "about": "Build the project"
+    },
+    {
+      "name": "deploy",
+      "about": "Deploy to target"
+    }
+  ]
+}
