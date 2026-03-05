@@ -10,11 +10,11 @@ NEW=$1
 
 info "Checking working tree..."
 require_clean_tree
-require_tracked_and_clean Cargo.toml Cargo.lock CHANGELOG.md cliff.toml README.md
+require_tracked_and_clean Cargo.toml crates/md-fme/Cargo.toml Cargo.lock CHANGELOG.md cliff.toml README.md
 
 info "$BINARY: $VERSION → $NEW"
 
-sed -i "0,/version = \"$VERSION\"/s//version = \"$NEW\"/" "$REPO_ROOT/Cargo.toml"
+sed -i "0,/version = \"$VERSION\"/s//version = \"$NEW\"/" "$CRATE_TOML"
 
 info "Updating Cargo.lock to $NEW..."
 cargo update --manifest-path "$REPO_ROOT/Cargo.toml" -p "$BINARY" 2>/dev/null || \
@@ -24,7 +24,7 @@ info "Generating changelog..."
 git -C "$REPO_ROOT" cliff --tag "v$NEW" -o "$REPO_ROOT/CHANGELOG.md"
 
 info "Committing..."
-git -C "$REPO_ROOT" add Cargo.toml Cargo.lock CHANGELOG.md
+git -C "$REPO_ROOT" add Cargo.toml crates/md-fme/Cargo.toml Cargo.lock CHANGELOG.md
 git -C "$REPO_ROOT" commit -m "chore(release): bump version to $NEW and generate changelog"
 
 info "Tagging v$NEW..."

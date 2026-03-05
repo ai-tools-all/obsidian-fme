@@ -4,10 +4,11 @@
 die() { echo "❌ $*" >&2; exit 1; }
 info() { echo "→ $*"; }
 
-# Read from Cargo.toml in the repo root (one level up from scripts/)
+# Read from crate Cargo.toml (workspace layout: crates/md-fme/)
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BINARY=$(grep '^name' "$REPO_ROOT/Cargo.toml" | head -1 | cut -d'"' -f2)
-VERSION=$(grep '^version' "$REPO_ROOT/Cargo.toml" | head -1 | cut -d'"' -f2)
+CRATE_TOML="$REPO_ROOT/crates/md-fme/Cargo.toml"
+BINARY=$(grep '^name' "$CRATE_TOML" | head -1 | cut -d'"' -f2)
+VERSION=$(grep '^version' "$CRATE_TOML" | head -1 | cut -d'"' -f2)
 
 require_clean_tree() {
     [[ -z "$(git -C "$REPO_ROOT" status --porcelain)" ]] || die "Working tree is dirty — commit or stash changes first"

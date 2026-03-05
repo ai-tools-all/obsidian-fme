@@ -3,7 +3,7 @@ set -euo pipefail
 source "$(dirname "$0")/helper.sh"
 
 info "Building release binary for $BINARY v$VERSION..."
-cargo build --release --manifest-path "$REPO_ROOT/Cargo.toml"
+cargo build --release --manifest-path "$REPO_ROOT/Cargo.toml" -p "$BINARY"
 
 info "Installing to ~/bin..."
 rm -f ~/bin/"$BINARY"
