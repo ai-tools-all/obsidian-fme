@@ -5,7 +5,7 @@ mod query;
 mod render;
 mod sr;
 
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -59,6 +59,8 @@ Schema format (schema.toml):
   md-fme enforce --schema ./custom-schema.toml --folder ./mistakes/"#
     )]
     Enforce {
+        #[command(flatten)]
+        describe: clap_describe::Describe,
         /// Schema file (defaults to <folder>/schema.toml or <file's parent>/schema.toml)
         #[arg(long)]
         schema: Option<PathBuf>,
@@ -125,6 +127,8 @@ SPECIAL:
   md-fme query "status = completed" --folder . --verbose"#
     )]
     Query {
+        #[command(flatten)]
+        describe: clap_describe::Describe,
         /// Query expression (e.g. "difficulty = hard AND status = completed")
         expression: String,
         /// Folder to scan
@@ -151,6 +155,8 @@ interval, ease factor, and review type."#,
   md-fme today --folder ./mistakes/"#
     )]
     Today {
+        #[command(flatten)]
+        describe: clap_describe::Describe,
         /// Folder to scan
         #[arg(long)]
         folder: PathBuf,
@@ -189,6 +195,8 @@ Quality 4-5 produces normal/fast interval growth."#,
   md-fme review --file mistakes/133_clone_graph.md --quality 1"#
     )]
     Review {
+        #[command(flatten)]
+        describe: clap_describe::Describe,
         /// File to review
         #[arg(long)]
         file: PathBuf,
@@ -224,6 +232,8 @@ for batch initialization."#,
   md-fme init-sr --folder ./mistakes/ --review-type solve"#
     )]
     InitSr {
+        #[command(flatten)]
+        describe: clap_describe::Describe,
         /// Single file
         #[arg(long)]
         file: Option<PathBuf>,
@@ -254,6 +264,8 @@ Scans all .md files with sr: frontmatter and displays:
   md-fme stats --folder ./mistakes/"#
     )]
     Stats {
+        #[command(flatten)]
+        describe: clap_describe::Describe,
         /// Folder to scan
         #[arg(long)]
         folder: PathBuf,
@@ -266,29 +278,58 @@ Scans all .md files with sr: frontmatter and displays:
 fn main() {
     let cli = Cli::parse();
     let json = cli.json;
+
+    let describe_output = match &cli.command {
+        Commands::Enforce { describe, .. } => {
+            describe.handle(Cli::command().find_subcommand("enforce").unwrap(), json, None)
+        }
+        Commands::Query { describe, .. } => {
+            describe.handle(Cli::command().find_subcommand("query").unwrap(), json, None)
+        }
+        Commands::Today { describe, .. } => {
+            describe.handle(Cli::command().find_subcommand("today").unwrap(), json, None)
+        }
+        Commands::Review { describe, .. } => {
+            describe.handle(Cli::command().find_subcommand("review").unwrap(), json, None)
+        }
+        Commands::InitSr { describe, .. } => {
+            describe.handle(Cli::command().find_subcommand("init-sr").unwrap(), json, None)
+        }
+        Commands::Stats { describe, .. } => {
+            describe.handle(Cli::command().find_subcommand("stats").unwrap(), json, None)
+        }
+    };
+
+    if let Some(out) = describe_output {
+        println!("{out}");
+        return;
+    }
+
     let result = match cli.command {
-        Commands::Enforce { schema, file, folder, fix, exclude, depth } => match (file, folder) {
-            (Some(f), None) => {
-                let schema_path = schema.unwrap_or_else(|| {
-                    f.parent().unwrap_or(std::path::Path::new(".")).join("schema.toml")
-                });
-                enforce::run_single_file(&schema_path, &f, fix, json)
+        Commands::Enforce { describe: _, schema, file, folder, fix, exclude, depth } => {
+            match (file, folder) {
+                (Some(f), None) => {
+                    let schema_path = schema.unwrap_or_else(|| {
+                        f.parent().unwrap_or(std::path::Path::new(".")).join("schema.toml")
+                    });
+                    enforce::run_single_file(&schema_path, &f, fix, json)
+                }
+                (None, Some(dir)) => {
+                    let schema_path = schema.unwrap_or_else(|| dir.join("schema.toml"));
+                    enforce::run(&schema_path, &dir, fix, exclude.as_deref(), depth, json)
+                }
+                _ => Err("Must specify either --file or --folder".to_string()),
             }
-            (None, Some(dir)) => {
-                let schema_path = schema.unwrap_or_else(|| dir.join("schema.toml"));
-                enforce::run(&schema_path, &dir, fix, exclude.as_deref(), depth, json)
-            }
-            _ => Err("Must specify either --file or --folder".to_string()),
-        },
-        Commands::Query { expression, folder, verbose, depth } => {
+        }
+        Commands::Query { describe: _, expression, folder, verbose, depth } => {
             query::run(&expression, &folder, verbose, depth, json)
         }
-        Commands::Today { folder, depth } => sr::today(&folder, depth, json),
-        Commands::Review { file, quality } => sr::review(&file, quality, json),
-        Commands::InitSr { file, folder, review_type, depth } => {
+        Commands::Today { describe: _, folder, depth } => sr::today(&folder, depth, json),
+        Commands::Review { describe: _, file, quality } => sr::review(&file, quality, json),
+        Commands::InitSr { describe: _, file, folder, review_type, depth } => {
             sr::init_sr(file.as_deref(), folder.as_deref(), &review_type, depth, json)
         }
-        Commands::Stats { folder, depth } => sr::stats(&folder, depth, json),
+        Commands::Stats { describe: _, folder, depth } => sr::stats(&folder, depth, json),
     };
     if let Err(e) = result {
         eprintln!("Error: {e}");
