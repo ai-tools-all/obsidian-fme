@@ -1,0 +1,32 @@
+# Required Args + --describe Research
+
+## Problem
+Clap validates required arguments before user code runs. So `md-fme query --describe` fails because clap demands the positional `expression` arg before our describe handler can short-circuit.
+
+Affected subcommands:
+- query (required positional: expression, required: --folder)
+- today (required: --folder)
+- stats (required: --folder)
+- review (required: --file, --quality)
+
+Working without extra args: enforce, init-sr (all optional)
+
+## Potential Solutions
+
+### 1. Custom clap parser hook (recommended)
+Use `Command::mut_subcommand()` to dynamically mark args as optional when --describe is detected in raw args. Check `std::env::args()` before parsing.
+
+### 2. Two-pass parsing
+First pass: parse just --describe flag from raw args. If set, build Command, extract schema, print, exit. Never call Cli::parse() at all.
+
+### 3. Make all args optional + validate in handler
+Change required args to Option<T>, validate presence in command handler (not clap). Describe works because it short-circuits before validation. Downside: worse --help output, manual validation.
+
+### 4. Override via clap's ArgRequired trait
+Use `Arg::required_if_eq()` or similar conditional requirement. Make args required only when --describe is NOT present.
+
+### 5. googleworkspace/cli approach
+They use a separate `schema` subcommand rather than a flag on existing subcommands. This avoids the required-args issue entirely. Could add `md-fme describe enforce` as alternative.
+
+## Recommendation
+Solution 2 (two-pass parsing) is cleanest. Before calling Cli::parse(), check if --describe appears in args. If so, identify the subcommand name, build the Command tree, find that subcommand, extract schema, print, and exit. No clap validation runs at all.

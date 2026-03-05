@@ -1,0 +1,77 @@
+# Terminal Rendering + Agent DX Research
+
+## Terminal Table Rendering Crates
+
+| Crate | Downloads | MD Input? | API | Best For |
+|-------|-----------|-----------|-----|----------|
+| termimad | 33K | Yes | Template | Render existing markdown pipe tables directly |
+| comfy-table | 53M | No | Builder | Most mature, best wrapping algorithm |
+| tabled | 20M | No | Derive | Cleanest struct-to-table via #[derive(Tabled)] |
+| cli-table | 3.8M | No | Derive | Middle ground |
+| prettytable-rs | 3.3K | No | Builder | Declining, skip |
+
+### Recommendation: termimad
+
+Since clap_describe already outputs markdown with pipe tables, termimad can render it directly to formatted ASCII table with colors + auto terminal width. Zero data transformation needed.
+
+Fallback: comfy-table if more layout control needed.
+
+### termimad key features
+- Direct markdown support with pipe table rendering
+- Dynamic table width detection and wrapping
+- Colored output with adaptive skins (light/dark detection)
+- TextTemplate system for data expansion
+- Supports pipe-delimited markdown tables with alignment
+
+## googleworkspace/cli Agent DX Patterns
+
+### Their schema command
+- `gws schema drive.files.list` — dotted-path introspection, JSON-only
+- `--resolve-refs` flag inlines nested schemas
+- Auto-generated SKILL.md files with YAML frontmatter for LLM consumption
+- `--dry-run` flag for agent safety (validate without executing)
+- MCP server mode (`gws mcp`) for direct LLM tool registration
+
+### SKILL.md format
+```yaml
+---
+name: gws-docs-write
+version: 1.0.0
+description: Append text to Google Docs
+metadata.openclaw:
+  category: productivity
+  requires.bins: gws
+  cliHelp: gws docs +write --help
+---
+# docs +write
+## Prerequisite
+## Description
+## Usage
+## Flags
+## Examples
+## Tips
+## See Also
+```
+
+### Patterns worth adopting in clap_describe
+
+| Pattern | Priority | Description |
+|---------|----------|-------------|
+| SKILL.md generation | High | Auto-generate agent skill files from --describe |
+| --dry-run | Medium | Validate CLI construction without side effects |
+| MCP-compatible output | Medium | Schema format mapping to MCP tool definitions |
+| Dotted path discovery | Low | md-fme describe enforce.folder for arg-level introspection |
+
+### Broader ecosystem trends (2025-2026)
+- JSON output as default for agent-facing commands
+- Schema-first CLI design gaining traction
+- MCP becoming standard agent-tool protocol
+- --help output doubling as tool description for LLMs
+
+## Sources
+- termimad: https://github.com/Canop/termimad
+- comfy-table: https://github.com/Nukesor/comfy-table
+- tabled: https://github.com/zhiburt/tabled
+- googleworkspace/cli: https://github.com/googleworkspace/cli
+- Agent-friendly CLI design: https://dev.to/uenyioha/writing-cli-tools-that-ai-agents-actually-want-to-use-39no
+- OASF: https://github.com/agntcy/oasf
