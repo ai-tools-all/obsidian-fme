@@ -1,3 +1,20 @@
+## [0.9.7] - 2026-03-05
+
+### 🚀 Features
+
+- *(clap_describe)* Add Deserialize to model structs for round-trip support
+
+### 🧪 Testing
+
+- *(clap_describe)* Add shared test fixtures for integration tests
+- *(clap_describe)* Add JSON snapshot tests for all fixture commands
+- *(clap_describe)* Add Markdown snapshot tests for all fixture commands
+- *(clap_describe)* Add edge case tests for empty, hidden, nested commands
+- *(clap_describe)* Add JSON round-trip tests verifying serialize/deserialize symmetry
+
+### ⚙️ Miscellaneous Tasks
+
+- Add clap_describe version for crates.io publish and close testing issues
 ## [0.9.6] - 2026-03-05
 
 ### 🚀 Features
@@ -23,6 +40,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - *(beads)* Add clap_describe epic issues and research docs
+- *(release)* Bump version to 0.9.6 and generate changelog
 ## [0.9.5] - 2026-03-04
 
 ### 🚀 Features
