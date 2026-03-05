@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommandSchema {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -18,7 +18,7 @@ pub struct CommandSchema {
     pub extra_description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ArgSchema {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -37,7 +37,7 @@ pub struct ArgSchema {
     pub takes_value: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubcommandSummary {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
