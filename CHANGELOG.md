@@ -1,3 +1,28 @@
+## [0.9.6] - 2026-03-05
+
+### 🚀 Features
+
+- *(clap_describe)* Add CommandSchema data model with serde
+- *(clap_describe)* Add extract_schema command introspection
+- *(clap_describe)* Add to_markdown() renderer for CommandSchema
+- *(clap_describe)* Add Describe Args struct with handle() helper
+- Integrate clap_describe --describe into all subcommands
+
+### 🐛 Bug Fixes
+
+- *(scripts)* Update Cargo.lock before committing in release.sh; guard dirty tree in local_ship.sh
+
+### 🚜 Refactor
+
+- Convert to cargo workspace with crates/md-fme and crates/clap_describe
+
+### 🧪 Testing
+
+- Add integration tests for --describe on all subcommands
+
+### ⚙️ Miscellaneous Tasks
+
+- *(beads)* Add clap_describe epic issues and research docs
 ## [0.9.5] - 2026-03-04
 
 ### 🚀 Features
@@ -11,6 +36,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Update Cargo.lock
+- *(release)* Bump version to 0.9.5 and generate changelog
 ## [0.9.4] - 2026-03-03
 
 ### 🚀 Features
