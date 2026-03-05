@@ -270,6 +270,100 @@ fn enforce_requires_file_or_folder() {
     assert!(!output.status.success(), "Should fail with neither --file nor --folder");
 }
 
+// --describe integration tests
+
+#[test]
+fn describe_enforce_markdown() {
+    let output = fme_bin().args(["enforce", "--describe"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(stdout.contains("# `enforce`"));
+    assert!(stdout.contains("--schema"));
+    assert!(stdout.contains("--folder"));
+}
+
+#[test]
+fn describe_enforce_json() {
+    let output = fme_bin()
+        .args(["enforce", "--describe", "--json"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success());
+    let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(v["name"], "enforce");
+    assert!(v["options"].as_array().unwrap().len() > 0);
+}
+
+#[test]
+fn describe_does_not_execute_command() {
+    // enforce --describe should NOT try to validate files (no --folder given would normally error)
+    let output = fme_bin().args(["enforce", "--describe"]).output().unwrap();
+    assert!(output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(!stderr.contains("Error"), "stderr: {stderr}");
+}
+
+#[test]
+fn describe_today_markdown() {
+    // today requires --folder even with --describe (clap validates required args first)
+    let output = fme_bin()
+        .args(["today", "--describe", "--folder", "."])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(stdout.contains("# `today`"));
+    assert!(stdout.contains("--folder"));
+}
+
+#[test]
+fn describe_stats_json() {
+    // stats requires --folder even with --describe
+    let output = fme_bin()
+        .args(["stats", "--describe", "--json", "--folder", "."])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success());
+    let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(v["name"], "stats");
+}
+
+#[test]
+fn describe_review_json() {
+    // review requires --file and --quality even with --describe
+    let output = fme_bin()
+        .args(["review", "--describe", "--json", "--file", "x", "--quality", "3"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success());
+    let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(v["name"], "review");
+}
+
+#[test]
+fn describe_init_sr_markdown() {
+    let output = fme_bin().args(["init-sr", "--describe"]).output().unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(stdout.contains("# `init-sr`"));
+}
+
+#[test]
+fn describe_query_markdown() {
+    // query requires positional <EXPRESSION> and --folder even with --describe
+    let output = fme_bin()
+        .args(["query", "--describe", "dummy", "--folder", "."])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(stdout.contains("# `query`"));
+    assert!(stdout.contains("--folder"));
+}
+
 fn with_exclude_temp_dir(
     test_name: &str,
     files: &[(&str, &str)],
