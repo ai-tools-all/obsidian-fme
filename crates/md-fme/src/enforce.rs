@@ -1,4 +1,4 @@
-use crate::{frontmatter, model::*, render};
+use crate::{frontmatter, model::*, render, toml_document};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -19,6 +19,21 @@ struct FieldDef {
     description: Option<String>,
     #[serde(default)]
     default: Option<String>,
+}
+
+fn detect_file_type(file: &Path) -> Option<&str> {
+    match file.extension() {
+        Some(ext) => {
+            if ext == "md" {
+                Some("md")
+            } else if ext == "toml" {
+                Some("toml")
+            } else {
+                None
+            }
+        }
+        None => None,
+    }
 }
 
 fn validate(fm: &toml::Value, schema: &Schema) -> Vec<String> {
@@ -139,6 +154,87 @@ fn is_excluded(filename: &str, patterns: &[String]) -> bool {
     patterns.iter().any(|p| matches_pattern(filename, p))
 }
 
+fn validate_toml_document(content: &toml::Value, schema: &Schema) -> Vec<String> {
+    let mut errors: Vec<String> = Vec::new();
+    for (field_name, field_def) in &schema.fields {
+        let value = toml_document::get_nested(content, field_name);
+        match value {
+            None => {
+                if field_def.mandatory {
+                    errors.push(format!("missing `{field_name}`"));
+                }
+            }
+            Some(v) => {
+                if let Some(allowed) = &field_def.allowed_values {
+                    let s = toml_document::value_to_string(v);
+                    if !allowed.contains(&s) {
+                        errors.push(format!("`{field_name}` = \"{s}\" not in {:?}", allowed));
+                    }
+                }
+                if let Some(fmt) = &field_def.format {
+                    if fmt == "date" {
+                        let s = toml_document::value_to_string(v);
+                        if chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").is_err()
+                            && chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S")
+                                .is_err()
+                        {
+                            errors.push(format!("`{field_name}` invalid date: \"{s}\""));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    errors
+}
+
+pub fn run_single_toml_file(
+    schema_path: &Path,
+    file: &Path,
+    json: bool,
+) -> Result<(), String> {
+    let schema_content = std::fs::read_to_string(schema_path)
+        .map_err(|e| format!("Cannot read schema {}: {e}", schema_path.display()))?;
+    let schema: Schema =
+        toml::from_str(&schema_content).map_err(|e| format!("Invalid schema TOML: {e}"))?;
+
+    let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let mut results: Vec<EnforceFile> = Vec::new();
+    let mut pass = 0u32;
+    let mut fail = 0u32;
+
+    let doc = match toml_document::read_file(file) {
+        Ok(d) => d,
+        Err(e) => {
+            fail += 1;
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fail,
+                errors: vec![format!("parse error: {e}")],
+                fixed: vec![],
+            });
+            let result = EnforceResult { passed: pass, failed: fail, results };
+            render::get(json).enforce(&result);
+            return Err("1 file(s) failed validation".to_string());
+        }
+    };
+
+    let errors = validate_toml_document(&doc.content, &schema);
+    if errors.is_empty() {
+        pass += 1;
+        results.push(EnforceFile { file: fname, status: FileStatus::Pass, errors: vec![], fixed: vec![] });
+        let result = EnforceResult { passed: pass, failed: fail, results };
+        render::get(json).enforce(&result);
+        return Ok(());
+    }
+
+    fail += 1;
+    results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors, fixed: vec![] });
+    let result = EnforceResult { passed: pass, failed: fail, results };
+    render::get(json).enforce(&result);
+    Err("1 file(s) failed validation".to_string())
+}
+
 fn hint_for_unfixable(fm: &toml::Value, schema: &Schema) -> Vec<String> {
     let mut hints = Vec::new();
     for (field_name, field_def) in &schema.fields {
@@ -160,6 +256,19 @@ fn hint_for_unfixable(fm: &toml::Value, schema: &Schema) -> Vec<String> {
 }
 
 pub fn run_single_file(
+    schema_path: &Path,
+    file: &Path,
+    fix: bool,
+    json: bool,
+) -> Result<(), String> {
+    match detect_file_type(file) {
+        Some("toml") => run_single_toml_file(schema_path, file, json),
+        Some("md") => run_single_file_md(schema_path, file, fix, json),
+        _ => Err(format!("Unsupported file type: {}", file.display())),
+    }
+}
+
+fn run_single_file_md(
     schema_path: &Path,
     file: &Path,
     fix: bool,
@@ -315,9 +424,9 @@ pub fn run(
     let schema: Schema =
         toml::from_str(&schema_content).map_err(|e| format!("Invalid schema TOML: {e}"))?;
 
-    let files = frontmatter::collect_md_files(folder, depth);
-    if files.is_empty() {
-        return Err("No .md files found".to_string());
+    let (md_files, toml_files) = frontmatter::collect_mixed_files(folder, depth);
+    if md_files.is_empty() && toml_files.is_empty() {
+        return Err("No .md or .toml files found".to_string());
     }
 
     let exclude_patterns = parse_exclude_patterns(exclude);
@@ -325,7 +434,8 @@ pub fn run(
     let mut fail = 0u32;
     let mut results: Vec<EnforceFile> = Vec::new();
 
-    for file in &files {
+    // Process .md files
+    for file in &md_files {
         let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
 
         if is_excluded(&fname, &exclude_patterns) {
@@ -460,6 +570,55 @@ pub fn run(
                 fixed: added,
             });
         }
+    }
+
+    // Process .toml files
+    for file in &toml_files {
+        let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+        if is_excluded(&fname, &exclude_patterns) {
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Skip,
+                errors: vec![],
+                fixed: vec![],
+            });
+            continue;
+        }
+
+        let doc = match toml_document::read_file(file) {
+            Ok(d) => d,
+            Err(e) => {
+                fail += 1;
+                results.push(EnforceFile {
+                    file: fname,
+                    status: FileStatus::Fail,
+                    errors: vec![format!("parse error: {e}")],
+                    fixed: vec![],
+                });
+                continue;
+            }
+        };
+
+        let errors = validate_toml_document(&doc.content, &schema);
+        if errors.is_empty() {
+            pass += 1;
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Pass,
+                errors: vec![],
+                fixed: vec![],
+            });
+            continue;
+        }
+
+        fail += 1;
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Fail,
+            errors,
+            fixed: vec![],
+        });
     }
 
     let result = EnforceResult { passed: pass, failed: fail, results };
