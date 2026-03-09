@@ -1,3 +1,17 @@
+## [0.9.8] - 2026-03-09
+
+### 🚀 Features
+
+- *(fme-025)* Implement standalone TOML validation support
+
+### ⚙️ Miscellaneous Tasks
+
+- *(clap_describe)* Bump version to 0.1.1 and add README
+- *(clap_describe)* Generate changelog with git-cliff
+- *(release)* Bump clap_describe to 0.1.1
+- Update beads event log
+- Bump version to 0.9.8
+- Update Cargo.lock for v0.9.8
 ## [0.9.7] - 2026-03-05
 
 ### 🚀 Features
@@ -15,6 +29,7 @@
 ### ⚙️ Miscellaneous Tasks
 
 - Add clap_describe version for crates.io publish and close testing issues
+- *(release)* Bump version to 0.9.7 and generate changelog
 ## [0.9.6] - 2026-03-05
 
 ### 🚀 Features

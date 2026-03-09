@@ -4,6 +4,7 @@ mod model;
 mod query;
 mod render;
 mod sr;
+mod toml_document;
 
 use clap::{CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;

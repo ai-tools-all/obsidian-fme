@@ -219,6 +219,38 @@ pub fn collect_md_files(folder: &Path, depth: usize) -> Vec<std::path::PathBuf> 
     files
 }
 
+pub fn collect_mixed_files(
+    folder: &Path,
+    depth: usize,
+) -> (Vec<std::path::PathBuf>, Vec<std::path::PathBuf>) {
+    let mut walker = walkdir::WalkDir::new(folder);
+    if depth > 0 {
+        walker = walker.max_depth(depth);
+    }
+    let mut md_files = Vec::new();
+    let mut toml_files = Vec::new();
+    for entry in walker.into_iter().filter_map(|e| e.ok()) {
+        let p = entry.path();
+        if !p.is_file() {
+            continue;
+        }
+        let fname = p.file_name().unwrap_or_default();
+        if fname == "claude.md" || fname == "schema.toml" {
+            continue;
+        }
+        if let Some(ext) = p.extension() {
+            if ext == "md" {
+                md_files.push(p.to_path_buf());
+            } else if ext == "toml" {
+                toml_files.push(p.to_path_buf());
+            }
+        }
+    }
+    md_files.sort();
+    toml_files.sort();
+    (md_files, toml_files)
+}
+
 pub fn get_nested<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
     let parts: Vec<&str> = key.split('.').collect();
     let mut current = value;
