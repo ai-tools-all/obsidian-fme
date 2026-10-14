@@ -1,3 +1,17 @@
+## [0.10.0] - 2026-10-14
+
+### 🚀 Features
+
+- Add format = "datetime" to enforce and `now` to query
+
+### 🐛 Bug Fixes
+
+- *(tests)* Make toml_enforce self-contained and un-expire query_ops date
+- *(clippy)* Resolve all clippy warnings
+
+### 🎨 Styling
+
+- Apply cargo fmt to the workspace
 ## [0.9.8] - 2026-03-09
 
 ### 🚀 Features
