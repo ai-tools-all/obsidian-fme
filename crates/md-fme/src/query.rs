@@ -1,3 +1,4 @@
+use crate::datetime::When;
 use crate::frontmatter;
 use chrono::Local;
 use std::path::Path;
@@ -115,10 +116,10 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
 }
 
 fn resolve_magic(s: &str) -> String {
-    if s == "today" {
-        Local::now().format("%Y-%m-%d").to_string()
-    } else {
-        s.to_string()
+    match s {
+        "today" => Local::now().format("%Y-%m-%d").to_string(),
+        "now" => Local::now().format("%Y-%m-%dT%H:%M").to_string(),
+        _ => s.to_string(),
     }
 }
 
@@ -257,20 +258,12 @@ fn cmp_check(fv: &Value, val: &str) -> Option<std::cmp::Ordering> {
     if let (Ok(a), Ok(b)) = (fv_str.parse::<f64>(), val.parse::<f64>()) {
         return a.partial_cmp(&b);
     }
-    if let (Some(a), Some(b)) = (parse_date(&fv_str), parse_date(val)) {
-        return Some(a.cmp(&b));
+    // Dates and ISO 8601 datetimes compare chronologically: datetime vs datetime
+    // to the second, anything involving a bare date by calendar day.
+    if let (Some(a), Some(b)) = (When::parse(&fv_str), When::parse(val)) {
+        return Some(a.compare(&b));
     }
     Some(fv_str.cmp(&val.to_string()))
-}
-
-fn parse_date(s: &str) -> Option<chrono::NaiveDate> {
-    chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
-        .ok()
-        .or_else(|| {
-            chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
-                .ok()
-                .map(|dt| dt.date())
-        })
 }
 
 pub fn parse_and_eval(expression: &str, fm: &Value) -> Result<bool, String> {

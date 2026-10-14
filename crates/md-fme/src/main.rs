@@ -1,3 +1,4 @@
+mod datetime;
 mod enforce;
 mod frontmatter;
 mod model;
@@ -49,9 +50,20 @@ Schema format (schema.toml):
   mandatory = true
   format = "date"
 
+  [fields.start]
+  mandatory = false
+  format = "datetime"
+
   [fields.difficulty]
   mandatory = false
-  allowed_values = ["easy", "medium", "hard"]"#,
+  allowed_values = ["easy", "medium", "hard"]
+
+FORMATS:
+  date       YYYY-MM-DD (also accepts YYYY-MM-DD HH:MM:SS)
+  datetime   ISO 8601: YYYY-MM-DDTHH:MM, optional :SS, optional .fff
+             fractional seconds, optional Z or ±HH:MM offset.
+             A space instead of T is accepted. A bare date is rejected.
+             e.g. 2026-10-14T09:00, 2026-10-14T09:00:30.5+05:30"#,
         after_help = r#"EXAMPLES:
   # Validate using auto-discovered schema.toml
   md-fme enforce --folder ./mistakes/
@@ -106,8 +118,18 @@ COMBINATORS:
   OR         Either condition must match
 
 SPECIAL:
-  today      Expands to current date (YYYY-MM-DD)
-  dot.path   Access nested YAML fields: sr.next_review, sr.ease"#,
+  today      Expands to current local date (YYYY-MM-DD)
+  now        Expands to current local datetime (YYYY-MM-DDTHH:MM)
+  dot.path   Access nested YAML fields: sr.next_review, sr.ease
+
+DATES AND DATETIMES:
+  <, <=, >, >= compare dates (YYYY-MM-DD) and ISO 8601 datetimes
+  chronologically, not as text. Two datetimes compare exactly
+  (T or space alike; 09:00 equals 09:00:00). If either side is a bare date,
+  both sides compare by calendar day, so "start <= today" matches a
+  start later today; use "start <= now" for time-of-day precision.
+  Datetimes with Z/±HH:MM are converted to local time; datetimes
+  without an offset are taken as local time."#,
         after_help = r#"EXAMPLES:
   # Find all BFS problems
   md-fme query "topics contains bfs" --folder .
@@ -117,6 +139,9 @@ SPECIAL:
 
   # Find items due for review today or earlier
   md-fme query "sr.next_review <= today" --folder .
+
+  # Find tasks whose start datetime has already passed
+  md-fme query "status = todo AND start <= now" --folder .
 
   # Find files missing a pattern field
   md-fme query "pattern missing" --folder .

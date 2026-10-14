@@ -1,4 +1,4 @@
-use crate::{frontmatter, model::*, render, toml_document};
+use crate::{datetime, frontmatter, model::*, render, toml_document};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -54,20 +54,31 @@ fn validate(fm: &toml::Value, schema: &Schema) -> Vec<String> {
                     }
                 }
                 if let Some(fmt) = &field_def.format {
-                    if fmt == "date" {
-                        let s = frontmatter::value_to_string(v);
-                        if chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").is_err()
-                            && chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S")
-                                .is_err()
-                        {
-                            errors.push(format!("`{field_name}` invalid date: \"{s}\""));
-                        }
-                    }
+                    let s = frontmatter::value_to_string(v);
+                    errors.extend(check_format(field_name, fmt, &s));
                 }
             }
         }
     }
     errors
+}
+
+/// Check a value against a schema `format`. Unknown formats are not checked.
+fn check_format(field_name: &str, fmt: &str, s: &str) -> Option<String> {
+    match fmt {
+        "date" => {
+            let ok = chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
+                || chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").is_ok();
+            (!ok).then(|| format!("`{field_name}` invalid date: \"{s}\""))
+        }
+        "datetime" => datetime::parse_iso8601_datetime(s).is_none().then(|| {
+            format!(
+                "`{field_name}` invalid datetime: \"{s}\" (expected {})",
+                datetime::DATETIME_SHAPE
+            )
+        }),
+        _ => None,
+    }
 }
 
 fn find_fixable_fields(fm: &toml::Value, schema: &Schema) -> Vec<String> {
@@ -172,15 +183,8 @@ fn validate_toml_document(content: &toml::Value, schema: &Schema) -> Vec<String>
                     }
                 }
                 if let Some(fmt) = &field_def.format {
-                    if fmt == "date" {
-                        let s = toml_document::value_to_string(v);
-                        if chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").is_err()
-                            && chrono::NaiveDateTime::parse_from_str(&s, "%Y-%m-%d %H:%M:%S")
-                                .is_err()
-                        {
-                            errors.push(format!("`{field_name}` invalid date: \"{s}\""));
-                        }
-                    }
+                    let s = toml_document::value_to_string(v);
+                    errors.extend(check_format(field_name, fmt, &s));
                 }
             }
         }

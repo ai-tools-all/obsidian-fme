@@ -30,6 +30,9 @@ md-fme query "difficulty = hard AND status = completed" --folder .
 # Show values for matching files
 md-fme query "status = completed" --folder . --verbose
 
+# Tasks whose start datetime has passed (`now` = current local YYYY-MM-DDTHH:MM)
+md-fme query "status = todo AND start <= now" --folder .
+
 # Items due for review today
 md-fme today --folder .
 
@@ -65,7 +68,7 @@ sr = { next_review = "2026-03-01", interval = 5, ease = 2.6, reps = 3 }
 | Command | Flags | Purpose |
 |---------|-------|---------|
 | `enforce` | `--schema`, `--folder`, `--fix`, `--exclude` | Validate against TOML schema, auto-fix with `--fix`, skip patterns with `--exclude` |
-| `query` | `expression`, `--folder`, `--verbose` | DSL search: `=`, `!=`, `contains`, `<`, `<=`, `>`, `>=`, `exists`, `missing`; combine with `AND`, `OR` |
+| `query` | `expression`, `--folder`, `--verbose` | DSL search: `=`, `!=`, `contains`, `<`, `<=`, `>`, `>=`, `exists`, `missing`; combine with `AND`, `OR`; `today` / `now` keywords |
 | `today` | `--folder` | Show SR items due today |
 | `review` | `--file`, `--quality` | Record SM-2 review (0=fail, 3=ok, 5=perfect) |
 | `init-sr` | `--file`, `--folder`, `--review-type` | Add SR metadata block |
@@ -91,6 +94,30 @@ format = "date"
 
 `--fix` adds missing mandatory fields using the first `allowed_values` entry as the default.
 
+## Query: dates, datetimes, `today` and `now`
+
+| Keyword | Expands to (local time) |
+|---------|-------------------------|
+| `today` | `YYYY-MM-DD` |
+| `now` | `YYYY-MM-DDTHH:MM` |
+
+`<`, `<=`, `>`, `>=` compare dates and ISO 8601 datetimes chronologically, not as text:
+
+- **datetime vs datetime** compares exactly. `T` and a space are equivalent, and
+  `09:00` equals `09:00:00`.
+- **date vs datetime** (either side is a bare `YYYY-MM-DD`) compares by calendar day.
+  `start <= today` matches a `start` of `2026-10-14T21:00` all day on 2026-10-14;
+  use `start <= now` when the time of day matters.
+- Datetimes with a `Z` / `±HH:MM` offset are converted to local time; datetimes
+  without an offset are taken as local time.
+- Anything else (numbers aside) falls back to text comparison.
+
+```sh
+md-fme query "status = todo AND start > now" --folder tasks      # not started yet
+md-fme query "status = todo AND start <= now" --folder tasks     # start has passed
+md-fme query "status = todo AND start missing OR status = todo AND start <= now" --folder tasks
+```
+
 ## Complete schema.toml Reference
 
 Every field you want to enforce gets its own `[fields.<name>]` block.
@@ -100,7 +127,7 @@ The four keys per block are:
 |-----|------|-------------|
 | `mandatory` | bool | `true` → file fails if the field is absent |
 | `allowed_values` | string array | restrict the field to a fixed set of values |
-| `format` | `"date"` | validate the value is a date (`YYYY-MM-DD`) |
+| `format` | `"date"` or `"datetime"` | `"date"`: value is a date (`YYYY-MM-DD`). `"datetime"`: value is an ISO 8601 datetime (see below) |
 | `default` | string | value written by `--fix` when the field is missing or invalid |
 
 ```toml
@@ -155,6 +182,17 @@ allowed_values = ["solve", "read", "implement"]
 [fields.last_reviewed]
 mandatory = false
 format = "date"
+
+# ── optional + datetime format ───────────────────────────────────────
+# Use for timestamps. format = "datetime" accepts ISO 8601:
+#   YYYY-MM-DDTHH:MM, optional :SS, optional fractional seconds (.fff, only
+#   after :SS), optional Z or ±HH:MM offset; a space instead of T is accepted.
+#   OK:  2026-10-14T09:00   2026-10-14 09:00   2026-10-14T09:00:30.5Z
+#        2026-10-14T09:00+05:30
+#   BAD: 2026-10-14 (bare date)   2026-10-14T9:00   2026-10-14T09:00+0530
+[fields.start]
+mandatory = false
+format = "datetime"
 
 # ── optional + free-form ─────────────────────────────────────────────
 # Use for informational fields you want to allow but not enforce.
