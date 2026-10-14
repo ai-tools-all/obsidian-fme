@@ -1,9 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::OnceLock;
 
-/// Builds the fixture tree once per test run in a private temp dir:
+/// A fresh fixture tree per test in its own temp dir, removed on drop (even if the test panics):
 ///   schema.toml
 ///   data/config.toml                  valid
 ///   experience/ai.toml                valid, with optional fields
@@ -11,13 +10,17 @@ use std::sync::OnceLock;
 ///   experience/invalid-missing.toml   missing `role` and `start_date`
 ///   experience/invalid-enum.toml      `role` not in allowed_values
 ///   experience/invalid-date.toml      `start_date` not a date
-fn fixture_root() -> &'static PathBuf {
-    static ROOT: OnceLock<PathBuf> = OnceLock::new();
-    ROOT.get_or_init(|| {
-        let dir = std::env::temp_dir().join(format!("fme-test-toml-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(dir.join("data")).unwrap();
-        fs::create_dir_all(dir.join("experience")).unwrap();
+struct Fixture {
+    root: PathBuf,
+}
+
+impl Fixture {
+    fn new(test_name: &str) -> Self {
+        let root =
+            std::env::temp_dir().join(format!("fme_toml_{test_name}_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("data")).unwrap();
+        fs::create_dir_all(root.join("experience")).unwrap();
         let files = [
             (
                 "schema.toml",
@@ -25,7 +28,10 @@ fn fixture_root() -> &'static PathBuf {
                  [fields.start_date]\nmandatory = true\nformat = \"date\"\n\n\
                  [fields.company]\nmandatory = false\n",
             ),
-            ("data/config.toml", "role = \"engineer\"\nstart_date = \"2024-01-15\"\n"),
+            (
+                "data/config.toml",
+                "role = \"engineer\"\nstart_date = \"2024-01-15\"\n",
+            ),
             (
                 "experience/ai.toml",
                 "role = \"lead\"\nstart_date = \"2025-06-01\"\ncompany = \"Acme AI\"\n",
@@ -45,14 +51,20 @@ fn fixture_root() -> &'static PathBuf {
             ),
         ];
         for (rel, content) in files {
-            fs::write(dir.join(rel), content).unwrap();
+            fs::write(root.join(rel), content).unwrap();
         }
-        dir
-    })
+        Fixture { root }
+    }
+
+    fn path(&self, rel: &str) -> String {
+        self.root.join(rel).to_string_lossy().to_string()
+    }
 }
 
-fn fixture(rel: &str) -> String {
-    fixture_root().join(rel).to_string_lossy().to_string()
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.root);
+    }
 }
 
 fn run_enforce(args: &[&str]) -> (bool, String) {
@@ -73,12 +85,13 @@ fn run_enforce(args: &[&str]) -> (bool, String) {
 
 #[test]
 fn test_valid_toml_document() {
+    let fx = Fixture::new("test_valid_toml_document");
     let (success, output) = run_enforce(&[
         "enforce",
         "--file",
-        &fixture("data/config.toml"),
+        &fx.path("data/config.toml"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(success, "Valid TOML should pass. Output: {}", output);
@@ -91,12 +104,13 @@ fn test_valid_toml_document() {
 
 #[test]
 fn test_missing_mandatory_field() {
+    let fx = Fixture::new("test_missing_mandatory_field");
     let (success, output) = run_enforce(&[
         "enforce",
         "--file",
-        &fixture("experience/invalid-missing.toml"),
+        &fx.path("experience/invalid-missing.toml"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(!success, "TOML with missing mandatory fields should fail");
@@ -109,12 +123,13 @@ fn test_missing_mandatory_field() {
 
 #[test]
 fn test_invalid_enum_value() {
+    let fx = Fixture::new("test_invalid_enum_value");
     let (success, output) = run_enforce(&[
         "enforce",
         "--file",
-        &fixture("experience/invalid-enum.toml"),
+        &fx.path("experience/invalid-enum.toml"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(!success, "TOML with invalid enum should fail");
@@ -127,12 +142,13 @@ fn test_invalid_enum_value() {
 
 #[test]
 fn test_invalid_date_format() {
+    let fx = Fixture::new("test_invalid_date_format");
     let (success, output) = run_enforce(&[
         "enforce",
         "--file",
-        &fixture("experience/invalid-date.toml"),
+        &fx.path("experience/invalid-date.toml"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(!success, "TOML with invalid date should fail");
@@ -145,12 +161,13 @@ fn test_invalid_date_format() {
 
 #[test]
 fn test_valid_toml_with_optional_fields() {
+    let fx = Fixture::new("test_valid_toml_with_optional_fields");
     let (success, output) = run_enforce(&[
         "enforce",
         "--file",
-        &fixture("experience/ai.toml"),
+        &fx.path("experience/ai.toml"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(
@@ -163,12 +180,13 @@ fn test_valid_toml_with_optional_fields() {
 
 #[test]
 fn test_markdown_with_frontmatter() {
+    let fx = Fixture::new("test_markdown_with_frontmatter");
     let (success, output) = run_enforce(&[
         "enforce",
         "--file",
-        &fixture("experience/readme.md"),
+        &fx.path("experience/readme.md"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(
@@ -181,12 +199,13 @@ fn test_markdown_with_frontmatter() {
 
 #[test]
 fn test_mixed_folder_validation() {
+    let fx = Fixture::new("test_mixed_folder_validation");
     let (success, output) = run_enforce(&[
         "enforce",
         "--folder",
-        &fixture("experience"),
+        &fx.path("experience"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(!success, "Folder with invalid files should fail overall");
@@ -212,12 +231,13 @@ fn test_mixed_folder_validation() {
 
 #[test]
 fn test_toml_folder_only() {
+    let fx = Fixture::new("test_toml_folder_only");
     let (success, output) = run_enforce(&[
         "enforce",
         "--folder",
-        &fixture("data"),
+        &fx.path("data"),
         "--schema",
-        &fixture("schema.toml"),
+        &fx.path("schema.toml"),
     ]);
 
     assert!(success, "Valid TOML folder should pass. Output: {}", output);

@@ -1,6 +1,7 @@
 /// Integration tests for `format = "datetime"` in enforce and the `now` keyword /
 /// date-vs-datetime comparisons in query.
 use std::fs;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -10,8 +11,24 @@ fn fme() -> Command {
 
 const SCHEMA: &str = "[fields.start]\nmandatory = true\nformat = \"datetime\"\n";
 
+/// Temp dir removed on drop, so tests clean up even when an assertion fails.
+struct TempDir(PathBuf);
+
+impl Deref for TempDir {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
 /// Writes `files` (name, content) plus a datetime schema.toml into a fresh temp dir.
-fn make_dir(test_name: &str, files: &[(&str, &str)]) -> PathBuf {
+fn make_dir(test_name: &str, files: &[(&str, &str)]) -> TempDir {
     let dir = std::env::temp_dir().join(format!("fme_dt_{test_name}_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
@@ -19,7 +36,7 @@ fn make_dir(test_name: &str, files: &[(&str, &str)]) -> PathBuf {
     for (name, content) in files {
         fs::write(dir.join(name), content).unwrap();
     }
-    dir
+    TempDir(dir)
 }
 
 fn yaml(start: &str) -> String {
@@ -71,7 +88,6 @@ fn enforce_datetime_accepts_iso8601_variants() {
     let (ok, out) = enforce(&dir);
     assert!(ok, "all valid datetimes should pass: {out}");
     assert!(out.contains("9 passed, 0 failed"), "9 passed: {out}");
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -98,7 +114,6 @@ fn enforce_datetime_rejects_invalid_values() {
             "should report {v:?}: {out}"
         );
     }
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -115,7 +130,6 @@ fn enforce_datetime_single_file_fails() {
         stdout.contains("invalid datetime"),
         "error message: {stdout}"
     );
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -133,12 +147,11 @@ fn enforce_date_format_still_rejects_datetime_t() {
     let (ok, out) = enforce(&dir);
     assert!(!ok, "date format should reject datetime: {out}");
     assert!(out.contains("`d` invalid date"), "date error: {out}");
-    let _ = fs::remove_dir_all(&dir);
 }
 
 // ── query: now and date/datetime comparisons ─────────────────────────────────
 
-fn query_dir(test_name: &str) -> PathBuf {
+fn query_dir(test_name: &str) -> TempDir {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     let later_today = format!("{today}T23:59");
     let earlier_today = format!("{today} 00:00:00");
@@ -166,7 +179,6 @@ fn query_now_past_and_future() {
     let gt = query(&dir, "start > now");
     assert!(gt.contains("future.md"), "future > now: {gt}");
     assert!(!gt.contains("past.md"), "past not > now: {gt}");
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -189,7 +201,6 @@ fn query_today_compares_datetimes_by_day() {
         "same day is not > today: {gt}"
     );
     assert!(gt.contains("future.md"), "future > today: {gt}");
-    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -207,5 +218,4 @@ fn query_datetime_literal_mixed_formats() {
     assert!(!lt.contains("ten.md"), "10:00 not < 10:00: {lt}");
     let eq = query(&dir, "start >= \"2026-10-14 10:00:00\"");
     assert!(eq.contains("ten.md"), "10:00 >= 10:00:00: {eq}");
-    let _ = fs::remove_dir_all(&dir);
 }
