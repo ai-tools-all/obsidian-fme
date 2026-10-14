@@ -12,7 +12,7 @@ date = "2026-01-15"
 notes = "this is a searchable substring note"
 
 [sr]
-next_review = "2026-03-15"
+next_review = "2099-03-15"
 interval = 10
 ease = 2.8
 reps = 5

@@ -311,7 +311,7 @@ fn nested_exists() {
 
 #[test]
 fn today_future_review_gt() {
-    // sr.next_review = "2026-03-15" > today (2026-02-27)
+    // sr.next_review = "2099-03-15" > today (far future so the test never expires)
     let out = q("sr.next_review > today");
     assert!(out.contains("query_ops_rich.md"), "today future: {out}");
 }
