@@ -28,7 +28,10 @@ fn eq_string_matches() {
 fn eq_case_insensitive() {
     // status = "revisited" but query uses uppercase
     let out = q("status = Revisited");
-    assert!(out.contains("query_ops_rich.md"), "eq case-insensitive: {out}");
+    assert!(
+        out.contains("query_ops_rich.md"),
+        "eq case-insensitive: {out}"
+    );
 }
 
 #[test]
@@ -48,13 +51,19 @@ fn eq_boolean_true() {
 #[test]
 fn neq_excludes_matching_value() {
     let out = q("type != query-ops-test");
-    assert!(!out.contains("query_ops_rich.md"), "neq should exclude: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "neq should exclude: {out}"
+    );
 }
 
 #[test]
 fn neq_includes_non_matching_value() {
     let out = q("type != query-ops-sparse");
-    assert!(out.contains("query_ops_rich.md"), "neq includes other: {out}");
+    assert!(
+        out.contains("query_ops_rich.md"),
+        "neq includes other: {out}"
+    );
 }
 
 // ── Numeric comparisons ──────────────────────────────────────────────────────
@@ -68,7 +77,10 @@ fn lt_numeric_matches() {
 #[test]
 fn lt_numeric_excludes() {
     let out = q("id < 9999");
-    assert!(!out.contains("query_ops_rich.md"), "lt numeric excludes: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "lt numeric excludes: {out}"
+    );
 }
 
 #[test]
@@ -86,7 +98,10 @@ fn gt_numeric_matches() {
 #[test]
 fn gt_numeric_excludes_equal() {
     let out = q("id > 9999");
-    assert!(!out.contains("query_ops_rich.md"), "gt numeric excludes equal: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "gt numeric excludes equal: {out}"
+    );
 }
 
 #[test]
@@ -107,7 +122,10 @@ fn lt_date_matches() {
 #[test]
 fn lt_date_excludes() {
     let out = q("date < 2026-01-15");
-    assert!(!out.contains("query_ops_rich.md"), "lt date excludes: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "lt date excludes: {out}"
+    );
 }
 
 #[test]
@@ -126,7 +144,10 @@ fn gt_date_matches() {
 fn gt_date_excludes() {
     // date = 2026-01-15, query > 2026-02-01 → should not match
     let out = q("date > 2026-02-01");
-    assert!(!out.contains("query_ops_rich.md"), "gt date excludes: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "gt date excludes: {out}"
+    );
 }
 
 #[test]
@@ -147,13 +168,19 @@ fn contains_array_exact_match() {
 #[test]
 fn contains_array_case_insensitive() {
     let out = q("topics contains BFS");
-    assert!(out.contains("query_ops_rich.md"), "contains array ci: {out}");
+    assert!(
+        out.contains("query_ops_rich.md"),
+        "contains array ci: {out}"
+    );
 }
 
 #[test]
 fn contains_array_no_match() {
     let out = q("topics contains zzznomatch");
-    assert!(!out.contains("query_ops_rich.md"), "contains array no match: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "contains array no match: {out}"
+    );
 }
 
 // ── contains — string substring ──────────────────────────────────────────────
@@ -168,13 +195,19 @@ fn contains_string_substring_match() {
 #[test]
 fn contains_string_case_insensitive() {
     let out = q("notes contains SEARCHABLE");
-    assert!(out.contains("query_ops_rich.md"), "contains string ci: {out}");
+    assert!(
+        out.contains("query_ops_rich.md"),
+        "contains string ci: {out}"
+    );
 }
 
 #[test]
 fn contains_string_no_match() {
     let out = q("notes contains zzznomatch");
-    assert!(!out.contains("query_ops_rich.md"), "contains string no match: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "contains string no match: {out}"
+    );
 }
 
 // ── exists ───────────────────────────────────────────────────────────────────
@@ -189,7 +222,10 @@ fn exists_present_field() {
 fn exists_absent_field_not_matched() {
     // sparse fixture has no sr table
     let out = q("sr.next_review exists");
-    assert!(!out.contains("query_ops_sparse.md"), "exists should not match sparse: {out}");
+    assert!(
+        !out.contains("query_ops_sparse.md"),
+        "exists should not match sparse: {out}"
+    );
 }
 
 #[test]
@@ -210,13 +246,19 @@ fn missing_absent_field_matches() {
 #[test]
 fn missing_present_field_not_matched() {
     let out = q("difficulty missing");
-    assert!(!out.contains("query_ops_rich.md"), "missing should not match rich: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "missing should not match rich: {out}"
+    );
 }
 
 #[test]
 fn missing_nested_absent() {
     let out = q("sr.next_review missing");
-    assert!(out.contains("query_ops_sparse.md"), "missing nested absent: {out}");
+    assert!(
+        out.contains("query_ops_sparse.md"),
+        "missing nested absent: {out}"
+    );
 }
 
 // ── AND ──────────────────────────────────────────────────────────────────────
@@ -270,12 +312,16 @@ fn parens_or_inside_and() {
 #[test]
 fn parens_wrong_branch_excluded() {
     let out = q("(status = attempted OR status = completed) AND type = query-ops-test");
-    assert!(!out.contains("query_ops_rich.md"), "parens wrong branch: {out}");
+    assert!(
+        !out.contains("query_ops_rich.md"),
+        "parens wrong branch: {out}"
+    );
 }
 
 #[test]
 fn parens_nested() {
-    let out = q("(type = query-ops-test AND (difficulty = easy OR difficulty = medium)) AND id = 9999");
+    let out =
+        q("(type = query-ops-test AND (difficulty = easy OR difficulty = medium)) AND id = 9999");
     assert!(out.contains("query_ops_rich.md"), "nested parens: {out}");
 }
 

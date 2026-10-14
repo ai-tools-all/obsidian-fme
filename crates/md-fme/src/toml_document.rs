@@ -23,8 +23,7 @@ pub fn read_file(path: &Path) -> Result<TomlDocument, String> {
 
 #[allow(dead_code)]
 pub fn write_raw(path: &Path, content: &str) -> Result<(), String> {
-    std::fs::write(path, content)
-        .map_err(|e| format!("Cannot write {}: {e}", path.display()))
+    std::fs::write(path, content).map_err(|e| format!("Cannot write {}: {e}", path.display()))
 }
 
 pub fn get_nested<'a>(value: &'a Value, key: &str) -> Option<&'a Value> {
@@ -72,7 +71,10 @@ mod tests {
         let content = "name = \"test\"\nrole = \"engineer\"\n";
         let doc = parse(content).unwrap();
         assert_eq!(doc.content.get("name").unwrap().as_str().unwrap(), "test");
-        assert_eq!(doc.content.get("role").unwrap().as_str().unwrap(), "engineer");
+        assert_eq!(
+            doc.content.get("role").unwrap().as_str().unwrap(),
+            "engineer"
+        );
     }
 
     #[test]

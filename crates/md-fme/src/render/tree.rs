@@ -125,8 +125,14 @@ impl Render for TreeRenderer {
                 "0".green().to_string()
             }
         );
-        println!("Reviews this week:    {}", stats.reviews_this_week.to_string().cyan());
-        println!("Current streak:       {} day(s)", stats.streak.to_string().cyan());
+        println!(
+            "Reviews this week:    {}",
+            stats.reviews_this_week.to_string().cyan()
+        );
+        println!(
+            "Current streak:       {} day(s)",
+            stats.streak.to_string().cyan()
+        );
 
         if !stats.weakest.is_empty() {
             println!("\n{}", "Top 5 Weakest (lowest ease):".bold());
@@ -259,7 +265,10 @@ mod tests {
             std::collections::HashMap::new();
         for (path, _) in &entries {
             let (dir, file) = split_path(path);
-            groups.entry(dir.to_string()).or_default().push(file.to_string());
+            groups
+                .entry(dir.to_string())
+                .or_default()
+                .push(file.to_string());
         }
         assert_eq!(groups["mistakes"].len(), 2);
         assert_eq!(groups["learning"].len(), 1);
@@ -274,7 +283,10 @@ mod tests {
             std::collections::HashMap::new();
         for (path, _) in &entries {
             let (dir, file) = split_path(path);
-            groups.entry(dir.to_string()).or_default().push(file.to_string());
+            groups
+                .entry(dir.to_string())
+                .or_default()
+                .push(file.to_string());
         }
         assert!(groups.contains_key(""));
         assert_eq!(groups[""][0], "root.md");

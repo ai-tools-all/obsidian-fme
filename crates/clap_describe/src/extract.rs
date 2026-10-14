@@ -30,7 +30,11 @@ pub fn extract_schema_with_extra(cmd: &clap::Command, extra: Option<String>) -> 
         name: cmd.get_name().to_owned(),
         about: cmd.get_about().map(|a| a.to_string()),
         long_about: cmd.get_long_about().map(|a| a.to_string()),
-        usage: cmd.clone().render_usage().to_string().replace("Usage: ", ""),
+        usage: cmd
+            .clone()
+            .render_usage()
+            .to_string()
+            .replace("Usage: ", ""),
         positional_args,
         options,
         subcommands,
@@ -85,16 +89,16 @@ mod tests {
         let schema = extract_schema(&cmd);
         assert_eq!(schema.name, "testcli");
         assert_eq!(schema.about.as_deref(), Some("Short description"));
-        assert_eq!(schema.long_about.as_deref(), Some("Long detailed description"));
+        assert_eq!(
+            schema.long_about.as_deref(),
+            Some("Long detailed description")
+        );
     }
 
     #[test]
     fn extracts_positional_args() {
-        let cmd = Command::new("testcli").arg(
-            Arg::new("input")
-                .required(true)
-                .help("The input file"),
-        );
+        let cmd =
+            Command::new("testcli").arg(Arg::new("input").required(true).help("The input file"));
 
         let schema = extract_schema(&cmd);
         assert_eq!(schema.positional_args.len(), 1);
@@ -160,26 +164,31 @@ mod tests {
         let schema = extract_schema(&cmd);
         assert_eq!(schema.subcommands.len(), 2);
         assert_eq!(schema.subcommands[0].name, "init");
-        assert_eq!(schema.subcommands[0].about.as_deref(), Some("Initialize project"));
+        assert_eq!(
+            schema.subcommands[0].about.as_deref(),
+            Some("Initialize project")
+        );
         assert_eq!(schema.subcommands[1].name, "build");
-        assert_eq!(schema.subcommands[1].about.as_deref(), Some("Build project"));
+        assert_eq!(
+            schema.subcommands[1].about.as_deref(),
+            Some("Build project")
+        );
     }
 
     #[test]
     fn extra_description_passed_through() {
         let cmd = Command::new("testcli");
         let schema = extract_schema_with_extra(&cmd, Some("Extra notes here".to_string()));
-        assert_eq!(schema.extra_description.as_deref(), Some("Extra notes here"));
+        assert_eq!(
+            schema.extra_description.as_deref(),
+            Some("Extra notes here")
+        );
     }
 
     #[test]
     fn hidden_args_excluded() {
         let cmd = Command::new("testcli")
-            .arg(
-                Arg::new("visible")
-                    .long("visible")
-                    .help("Visible arg"),
-            )
+            .arg(Arg::new("visible").long("visible").help("Visible arg"))
             .arg(
                 Arg::new("hidden")
                     .long("hidden")

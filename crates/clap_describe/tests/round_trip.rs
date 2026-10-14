@@ -1,6 +1,6 @@
 mod common;
 
-use clap_describe::{extract_schema, extract_schema_with_extra, CommandSchema};
+use clap_describe::{CommandSchema, extract_schema, extract_schema_with_extra};
 
 #[test]
 fn round_trip_empty_command() {

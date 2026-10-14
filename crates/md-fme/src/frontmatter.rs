@@ -135,10 +135,11 @@ fn format_kv(key: &str, value: &Value) -> String {
             let items: Vec<String> = arr.iter().map(|v| format_inline_value(v)).collect();
             format!("{key} = [{}]\n", items.join(", "))
         }
-        Value::Table(_) => {
-            toml::to_string(&toml::map::Map::from_iter([(key.to_string(), value.clone())]))
-                .unwrap_or_default()
-        }
+        Value::Table(_) => toml::to_string(&toml::map::Map::from_iter([(
+            key.to_string(),
+            value.clone(),
+        )]))
+        .unwrap_or_default(),
         _ => format!("{key} = {value}\n"),
     }
 }
@@ -191,13 +192,11 @@ pub fn has_sr_block(fm: &Value) -> bool {
 }
 
 pub fn write_raw(path: &Path, content: &str) -> Result<(), String> {
-    std::fs::write(path, content)
-        .map_err(|e| format!("Cannot write {}: {e}", path.display()))
+    std::fs::write(path, content).map_err(|e| format!("Cannot write {}: {e}", path.display()))
 }
 
 pub fn read_raw(path: &Path) -> Result<String, String> {
-    std::fs::read_to_string(path)
-        .map_err(|e| format!("Cannot read {}: {e}", path.display()))
+    std::fs::read_to_string(path).map_err(|e| format!("Cannot read {}: {e}", path.display()))
 }
 
 pub fn collect_md_files(folder: &Path, depth: usize) -> Vec<std::path::PathBuf> {
@@ -210,7 +209,8 @@ pub fn collect_md_files(folder: &Path, depth: usize) -> Vec<std::path::PathBuf> 
         let p = entry.path();
         if p.is_file()
             && p.extension().is_some_and(|ext| ext == "md")
-            && p.file_name().is_some_and(|n| n != "claude.md" && n != "schema.toml")
+            && p.file_name()
+                .is_some_and(|n| n != "claude.md" && n != "schema.toml")
         {
             files.push(p.to_path_buf());
         }
@@ -328,10 +328,9 @@ mod tests {
 
     #[test]
     fn yaml_to_toml_conversion() {
-        let yaml: serde_yaml::Value = serde_yaml::from_str(
-            "title: Hello\ncount: 42\nactive: true\ntags:\n  - a\n  - b\n",
-        )
-        .unwrap();
+        let yaml: serde_yaml::Value =
+            serde_yaml::from_str("title: Hello\ncount: 42\nactive: true\ntags:\n  - a\n  - b\n")
+                .unwrap();
         let toml_val = yaml_to_toml(&yaml);
         assert_eq!(toml_val.get("title").unwrap().as_str().unwrap(), "Hello");
         assert_eq!(toml_val.get("count").unwrap().as_integer().unwrap(), 42);
@@ -388,8 +387,7 @@ mod tests {
 
     #[test]
     fn yaml_null_filtered() {
-        let yaml: serde_yaml::Value =
-            serde_yaml::from_str("tags:\n  - a\n  -\n  - b\n").unwrap();
+        let yaml: serde_yaml::Value = serde_yaml::from_str("tags:\n  - a\n  -\n  - b\n").unwrap();
         let toml_val = yaml_to_toml(&yaml);
         let tags = toml_val.get("tags").unwrap().as_array().unwrap();
         assert_eq!(tags.len(), 2);
@@ -397,13 +395,15 @@ mod tests {
 
     #[test]
     fn yaml_nested_table_conversion() {
-        let yaml: serde_yaml::Value = serde_yaml::from_str(
-            "sr:\n  next_review: 2026-01-01\n  interval: 1\n  ease: 2.5\n",
-        )
-        .unwrap();
+        let yaml: serde_yaml::Value =
+            serde_yaml::from_str("sr:\n  next_review: 2026-01-01\n  interval: 1\n  ease: 2.5\n")
+                .unwrap();
         let toml_val = yaml_to_toml(&yaml);
         let sr = toml_val.get("sr").unwrap().as_table().unwrap();
-        assert_eq!(sr.get("next_review").unwrap().as_str().unwrap(), "2026-01-01");
+        assert_eq!(
+            sr.get("next_review").unwrap().as_str().unwrap(),
+            "2026-01-01"
+        );
         assert_eq!(sr.get("interval").unwrap().as_integer().unwrap(), 1);
     }
 }

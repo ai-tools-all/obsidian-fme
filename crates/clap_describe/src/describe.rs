@@ -10,12 +10,7 @@ pub struct Describe {
 }
 
 impl Describe {
-    pub fn handle(
-        &self,
-        cmd: &clap::Command,
-        json: bool,
-        extra: Option<String>,
-    ) -> Option<String> {
+    pub fn handle(&self, cmd: &clap::Command, json: bool, extra: Option<String>) -> Option<String> {
         if !self.describe {
             return None;
         }

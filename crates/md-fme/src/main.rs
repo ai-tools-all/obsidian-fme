@@ -306,21 +306,27 @@ fn main() {
     let json = cli.json;
 
     let describe_output = match &cli.command {
-        Commands::Enforce { describe, .. } => {
-            describe.handle(Cli::command().find_subcommand("enforce").unwrap(), json, None)
-        }
+        Commands::Enforce { describe, .. } => describe.handle(
+            Cli::command().find_subcommand("enforce").unwrap(),
+            json,
+            None,
+        ),
         Commands::Query { describe, .. } => {
             describe.handle(Cli::command().find_subcommand("query").unwrap(), json, None)
         }
         Commands::Today { describe, .. } => {
             describe.handle(Cli::command().find_subcommand("today").unwrap(), json, None)
         }
-        Commands::Review { describe, .. } => {
-            describe.handle(Cli::command().find_subcommand("review").unwrap(), json, None)
-        }
-        Commands::InitSr { describe, .. } => {
-            describe.handle(Cli::command().find_subcommand("init-sr").unwrap(), json, None)
-        }
+        Commands::Review { describe, .. } => describe.handle(
+            Cli::command().find_subcommand("review").unwrap(),
+            json,
+            None,
+        ),
+        Commands::InitSr { describe, .. } => describe.handle(
+            Cli::command().find_subcommand("init-sr").unwrap(),
+            json,
+            None,
+        ),
         Commands::Stats { describe, .. } => {
             describe.handle(Cli::command().find_subcommand("stats").unwrap(), json, None)
         }
@@ -332,30 +338,64 @@ fn main() {
     }
 
     let result = match cli.command {
-        Commands::Enforce { describe: _, schema, file, folder, fix, exclude, depth } => {
-            match (file, folder) {
-                (Some(f), None) => {
-                    let schema_path = schema.unwrap_or_else(|| {
-                        f.parent().unwrap_or(std::path::Path::new(".")).join("schema.toml")
-                    });
-                    enforce::run_single_file(&schema_path, &f, fix, json)
-                }
-                (None, Some(dir)) => {
-                    let schema_path = schema.unwrap_or_else(|| dir.join("schema.toml"));
-                    enforce::run(&schema_path, &dir, fix, exclude.as_deref(), depth, json)
-                }
-                _ => Err("Must specify either --file or --folder".to_string()),
+        Commands::Enforce {
+            describe: _,
+            schema,
+            file,
+            folder,
+            fix,
+            exclude,
+            depth,
+        } => match (file, folder) {
+            (Some(f), None) => {
+                let schema_path = schema.unwrap_or_else(|| {
+                    f.parent()
+                        .unwrap_or(std::path::Path::new("."))
+                        .join("schema.toml")
+                });
+                enforce::run_single_file(&schema_path, &f, fix, json)
             }
-        }
-        Commands::Query { describe: _, expression, folder, verbose, depth } => {
-            query::run(&expression, &folder, verbose, depth, json)
-        }
-        Commands::Today { describe: _, folder, depth } => sr::today(&folder, depth, json),
-        Commands::Review { describe: _, file, quality } => sr::review(&file, quality, json),
-        Commands::InitSr { describe: _, file, folder, review_type, depth } => {
-            sr::init_sr(file.as_deref(), folder.as_deref(), &review_type, depth, json)
-        }
-        Commands::Stats { describe: _, folder, depth } => sr::stats(&folder, depth, json),
+            (None, Some(dir)) => {
+                let schema_path = schema.unwrap_or_else(|| dir.join("schema.toml"));
+                enforce::run(&schema_path, &dir, fix, exclude.as_deref(), depth, json)
+            }
+            _ => Err("Must specify either --file or --folder".to_string()),
+        },
+        Commands::Query {
+            describe: _,
+            expression,
+            folder,
+            verbose,
+            depth,
+        } => query::run(&expression, &folder, verbose, depth, json),
+        Commands::Today {
+            describe: _,
+            folder,
+            depth,
+        } => sr::today(&folder, depth, json),
+        Commands::Review {
+            describe: _,
+            file,
+            quality,
+        } => sr::review(&file, quality, json),
+        Commands::InitSr {
+            describe: _,
+            file,
+            folder,
+            review_type,
+            depth,
+        } => sr::init_sr(
+            file.as_deref(),
+            folder.as_deref(),
+            &review_type,
+            depth,
+            json,
+        ),
+        Commands::Stats {
+            describe: _,
+            folder,
+            depth,
+        } => sr::stats(&folder, depth, json),
     };
     if let Err(e) = result {
         eprintln!("Error: {e}");

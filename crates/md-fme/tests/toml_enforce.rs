@@ -82,7 +82,10 @@ fn test_valid_toml_document() {
     ]);
 
     assert!(success, "Valid TOML should pass. Output: {}", output);
-    assert!(output.contains("PASS config.toml"), "Should show PASS status");
+    assert!(
+        output.contains("PASS config.toml"),
+        "Should show PASS status"
+    );
     assert!(output.contains("1 passed"), "Should report 1 passed");
 }
 
@@ -150,7 +153,11 @@ fn test_valid_toml_with_optional_fields() {
         &fixture("schema.toml"),
     ]);
 
-    assert!(success, "Valid TOML with optional fields should pass. Output: {}", output);
+    assert!(
+        success,
+        "Valid TOML with optional fields should pass. Output: {}",
+        output
+    );
     assert!(output.contains("PASS ai.toml"), "Should show PASS status");
 }
 
@@ -164,7 +171,11 @@ fn test_markdown_with_frontmatter() {
         &fixture("schema.toml"),
     ]);
 
-    assert!(success, "Markdown with valid frontmatter should pass. Output: {}", output);
+    assert!(
+        success,
+        "Markdown with valid frontmatter should pass. Output: {}",
+        output
+    );
     assert!(output.contains("PASS readme.md"), "Should show PASS status");
 }
 
@@ -181,7 +192,10 @@ fn test_mixed_folder_validation() {
     assert!(!success, "Folder with invalid files should fail overall");
     assert!(output.contains("PASS readme.md"), "Should pass readme.md");
     assert!(output.contains("PASS ai.toml"), "Should pass ai.toml");
-    assert!(output.contains("FAIL invalid-date.toml"), "Should fail invalid-date.toml");
+    assert!(
+        output.contains("FAIL invalid-date.toml"),
+        "Should fail invalid-date.toml"
+    );
     assert!(
         output.contains("FAIL invalid-enum.toml"),
         "Should fail invalid-enum.toml"
@@ -190,7 +204,10 @@ fn test_mixed_folder_validation() {
         output.contains("FAIL invalid-missing.toml"),
         "Should fail invalid-missing.toml"
     );
-    assert!(output.contains("2 passed, 3 failed"), "Should report 2 passed, 3 failed");
+    assert!(
+        output.contains("2 passed, 3 failed"),
+        "Should report 2 passed, 3 failed"
+    );
 }
 
 #[test]
@@ -204,6 +221,9 @@ fn test_toml_folder_only() {
     ]);
 
     assert!(success, "Valid TOML folder should pass. Output: {}", output);
-    assert!(output.contains("PASS config.toml"), "Should show PASS status");
+    assert!(
+        output.contains("PASS config.toml"),
+        "Should show PASS status"
+    );
     assert!(output.contains("1 passed"), "Should report 1 passed");
 }

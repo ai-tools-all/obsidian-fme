@@ -76,30 +76,24 @@ pub fn command_with_subcommands() -> Command {
         .subcommand(Command::new("init").about("Initialize project"))
         .subcommand(Command::new("build").about("Build the project"))
         .subcommand(
-            Command::new("deploy")
-                .about("Deploy to target")
-                .arg(
-                    Arg::new("target")
-                        .long("target")
-                        .value_parser(["staging", "production"])
-                        .required(true)
-                        .help("Deployment target"),
-                ),
+            Command::new("deploy").about("Deploy to target").arg(
+                Arg::new("target")
+                    .long("target")
+                    .value_parser(["staging", "production"])
+                    .required(true)
+                    .help("Deployment target"),
+            ),
         )
         .subcommand(Command::new("hidden-cmd").about("Secret").hide(true))
 }
 
 /// Deeply nested subcommands
 pub fn nested_subcommands() -> Command {
-    Command::new("deep")
-        .about("Deeply nested CLI")
-        .subcommand(
-            Command::new("level1")
-                .about("First level")
-                .subcommand(
-                    Command::new("level2")
-                        .about("Second level")
-                        .arg(Arg::new("flag").long("flag").action(ArgAction::SetTrue)),
-                ),
-        )
+    Command::new("deep").about("Deeply nested CLI").subcommand(
+        Command::new("level1").about("First level").subcommand(
+            Command::new("level2")
+                .about("Second level")
+                .arg(Arg::new("flag").long("flag").action(ArgAction::SetTrue)),
+        ),
+    )
 }

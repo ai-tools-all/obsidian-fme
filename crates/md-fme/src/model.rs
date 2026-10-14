@@ -103,7 +103,8 @@ mod tests {
             ease: 2.5,
             next_review: "2026-02-26".into(),
         };
-        let v: serde_json::Value = serde_json::from_str(&serde_json::to_string(&item).unwrap()).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&item).unwrap()).unwrap();
         assert_eq!(v["path"], "mistakes/133_clone_graph.md");
         assert_eq!(v["review_type"], "recall");
         assert_eq!(v["days_overdue"], 5);
@@ -118,10 +119,17 @@ mod tests {
             overdue: 3,
             reviews_this_week: 2,
             streak: 1,
-            weakest: vec![WeakItem { path: "a.md".into(), ease: 1.8 }],
-            upcoming_7_days: vec![UpcomingDay { date: "2026-03-04".into(), count: 2 }],
+            weakest: vec![WeakItem {
+                path: "a.md".into(),
+                ease: 1.8,
+            }],
+            upcoming_7_days: vec![UpcomingDay {
+                date: "2026-03-04".into(),
+                count: 2,
+            }],
         };
-        let v: serde_json::Value = serde_json::from_str(&serde_json::to_string(&stats).unwrap()).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&stats).unwrap()).unwrap();
         assert_eq!(v["total"], 27);
         assert_eq!(v["streak"], 1);
         assert_eq!(v["weakest"][0]["ease"], 1.8);
@@ -130,30 +138,54 @@ mod tests {
 
     #[test]
     fn enforce_file_status_serializes_lowercase() {
-        let f = EnforceFile { file: "a.md".into(), status: FileStatus::Pass, errors: vec![], fixed: vec![] };
-        let v: serde_json::Value = serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
+        let f = EnforceFile {
+            file: "a.md".into(),
+            status: FileStatus::Pass,
+            errors: vec![],
+            fixed: vec![],
+        };
+        let v: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
         assert_eq!(v["status"], "pass");
     }
 
     #[test]
     fn enforce_file_omits_empty_vecs() {
-        let f = EnforceFile { file: "a.md".into(), status: FileStatus::Pass, errors: vec![], fixed: vec![] };
-        let v: serde_json::Value = serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
+        let f = EnforceFile {
+            file: "a.md".into(),
+            status: FileStatus::Pass,
+            errors: vec![],
+            fixed: vec![],
+        };
+        let v: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&f).unwrap()).unwrap();
         assert!(v.get("errors").is_none());
         assert!(v.get("fixed").is_none());
     }
 
     #[test]
     fn query_match_omits_none_fields() {
-        let m = QueryMatch { path: "a.md".into(), fields: None };
-        let v: serde_json::Value = serde_json::from_str(&serde_json::to_string(&m).unwrap()).unwrap();
+        let m = QueryMatch {
+            path: "a.md".into(),
+            fields: None,
+        };
+        let v: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&m).unwrap()).unwrap();
         assert!(v.get("fields").is_none());
     }
 
     #[test]
     fn review_result_serializes_correctly() {
-        let r = ReviewResult { file: "a.md".into(), quality: 4, interval: 7, ease: 2.6, reps: 3, next_review: "2026-03-10".into() };
-        let v: serde_json::Value = serde_json::from_str(&serde_json::to_string(&r).unwrap()).unwrap();
+        let r = ReviewResult {
+            file: "a.md".into(),
+            quality: 4,
+            interval: 7,
+            ease: 2.6,
+            reps: 3,
+            next_review: "2026-03-10".into(),
+        };
+        let v: serde_json::Value =
+            serde_json::from_str(&serde_json::to_string(&r).unwrap()).unwrap();
         assert_eq!(v["quality"], 4);
         assert_eq!(v["interval"], 7);
         assert_eq!(v["next_review"], "2026-03-10");

@@ -104,7 +104,9 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             "exists" => tokens.push(Token::Op(Operator::Exists)),
             "missing" => tokens.push(Token::Op(Operator::Missing)),
             _ => {
-                if tokens.is_empty() || matches!(tokens.last(), Some(Token::And | Token::Or | Token::LParen)) {
+                if tokens.is_empty()
+                    || matches!(tokens.last(), Some(Token::And | Token::Or | Token::LParen))
+                {
                     tokens.push(Token::Field(word));
                 } else {
                     tokens.push(Token::Value(resolve_magic(&word)));
@@ -225,9 +227,15 @@ fn evaluate(expr: &Expr, fm: &Value) -> bool {
                         Operator::Eq => eq_check(fv, val),
                         Operator::Neq => !eq_check(fv, val),
                         Operator::Lt => cmp_check(fv, val) == Some(std::cmp::Ordering::Less),
-                        Operator::Lte => matches!(cmp_check(fv, val), Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)),
+                        Operator::Lte => matches!(
+                            cmp_check(fv, val),
+                            Some(std::cmp::Ordering::Less | std::cmp::Ordering::Equal)
+                        ),
                         Operator::Gt => cmp_check(fv, val) == Some(std::cmp::Ordering::Greater),
-                        Operator::Gte => matches!(cmp_check(fv, val), Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal)),
+                        Operator::Gte => matches!(
+                            cmp_check(fv, val),
+                            Some(std::cmp::Ordering::Greater | std::cmp::Ordering::Equal)
+                        ),
                         _ => false,
                     }
                 }
@@ -238,9 +246,9 @@ fn evaluate(expr: &Expr, fm: &Value) -> bool {
 
 fn contains_check(fv: &Value, val: &str) -> bool {
     match fv {
-        Value::Array(arr) => arr.iter().any(|item| {
-            frontmatter::value_to_string(item).eq_ignore_ascii_case(val)
-        }),
+        Value::Array(arr) => arr
+            .iter()
+            .any(|item| frontmatter::value_to_string(item).eq_ignore_ascii_case(val)),
         Value::String(s) => s.to_lowercase().contains(&val.to_lowercase()),
         _ => frontmatter::value_to_string(fv)
             .to_lowercase()
@@ -323,7 +331,10 @@ pub fn run(
         }
     }
 
-    let result = QueryResult { count: matches.len(), matches };
+    let result = QueryResult {
+        count: matches.len(),
+        matches,
+    };
     render::get(json).query(&result);
     Ok(())
 }

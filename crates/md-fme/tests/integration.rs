@@ -26,7 +26,12 @@ fn parse_yaml_fixture_leetcode_rich() {
     assert!(content.contains("type: leetcode"));
 
     let output = fme_bin()
-        .args(["query", "difficulty = medium AND status = completed", "--folder", "tests/fixtures"])
+        .args([
+            "query",
+            "difficulty = medium AND status = completed",
+            "--folder",
+            "tests/fixtures",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -46,7 +51,12 @@ fn parse_toml_fixture() {
 #[test]
 fn parse_yaml_multiline_tags() {
     let output = fme_bin()
-        .args(["query", "tags contains cybersecurity", "--folder", "tests/fixtures"])
+        .args([
+            "query",
+            "tags contains cybersecurity",
+            "--folder",
+            "tests/fixtures",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -56,7 +66,12 @@ fn parse_yaml_multiline_tags() {
 #[test]
 fn parse_yaml_inline_array() {
     let output = fme_bin()
-        .args(["query", "tags contains workflow", "--folder", "tests/fixtures"])
+        .args([
+            "query",
+            "tags contains workflow",
+            "--folder",
+            "tests/fixtures",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -103,10 +118,17 @@ fn init_sr_converts_yaml_to_toml() {
             .args(["init-sr", "--file", tmp.to_str().unwrap()])
             .output()
             .unwrap();
-        assert!(output.status.success(), "init-sr failed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "init-sr failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
 
         let after = fs::read_to_string(tmp).unwrap();
-        assert!(after.starts_with("+++"), "Should be converted to TOML: {after}");
+        assert!(
+            after.starts_with("+++"),
+            "Should be converted to TOML: {after}"
+        );
         assert!(after.contains("[sr]"), "Should have [sr] table");
         assert!(after.contains("next_review"), "Should have next_review");
         assert!(after.contains("review_type"), "Should have review_type");
@@ -133,7 +155,13 @@ fn init_sr_on_toml_stays_toml() {
 #[test]
 fn verbose_query_shows_toml_fields() {
     let output = fme_bin()
-        .args(["query", "type = leetcode", "--folder", "tests/fixtures", "--verbose"])
+        .args([
+            "query",
+            "type = leetcode",
+            "--folder",
+            "tests/fixtures",
+            "--verbose",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -178,12 +206,22 @@ fn enforce_single_file_pass() {
     let valid = "---\nstatus: attempted\ndate: 2026-01-01\ntype: leetcode\n---\n\n## Body\n";
     with_single_file_temp("pass", valid, true, |schema, md| {
         let output = fme_bin()
-            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+            .args([
+                "enforce",
+                "--file",
+                md.to_str().unwrap(),
+                "--schema",
+                schema.to_str().unwrap(),
+            ])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("PASS"), "Should pass: {stdout}");
-        assert!(output.status.success(), "Exit 0: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "Exit 0: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     });
 }
 
@@ -192,7 +230,13 @@ fn enforce_single_file_fail() {
     let invalid = "---\ntags:\n  - test\n---\n\n## Body\n";
     with_single_file_temp("fail", invalid, true, |schema, md| {
         let output = fme_bin()
-            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+            .args([
+                "enforce",
+                "--file",
+                md.to_str().unwrap(),
+                "--schema",
+                schema.to_str().unwrap(),
+            ])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -206,7 +250,14 @@ fn enforce_single_file_fix() {
     let invalid = "---\ntags:\n  - test\n---\n\n## Body\n";
     with_single_file_temp("fix", invalid, true, |schema, md| {
         let output = fme_bin()
-            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap(), "--fix"])
+            .args([
+                "enforce",
+                "--file",
+                md.to_str().unwrap(),
+                "--schema",
+                schema.to_str().unwrap(),
+                "--fix",
+            ])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -214,8 +265,14 @@ fn enforce_single_file_fix() {
         assert!(output.status.success(), "Should succeed after fix");
 
         let after = fs::read_to_string(md).unwrap();
-        assert!(after.contains("status = \"attempted\""), "Default applied: {after}");
-        assert!(after.contains("date = \"2026-01-01\""), "Date default applied: {after}");
+        assert!(
+            after.contains("status = \"attempted\""),
+            "Default applied: {after}"
+        );
+        assert!(
+            after.contains("date = \"2026-01-01\""),
+            "Date default applied: {after}"
+        );
     });
 }
 
@@ -229,7 +286,10 @@ fn enforce_single_file_schema_auto_discovery() {
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("PASS"), "Auto-discovered schema, should pass: {stdout}");
+        assert!(
+            stdout.contains("PASS"),
+            "Auto-discovered schema, should pass: {stdout}"
+        );
         assert!(output.status.success());
     });
 }
@@ -239,12 +299,24 @@ fn enforce_single_file_no_frontmatter_without_fix() {
     let no_fm = "# Just a heading\n\nBody.\n";
     with_single_file_temp("nofm", no_fm, true, |schema, md| {
         let output = fme_bin()
-            .args(["enforce", "--file", md.to_str().unwrap(), "--schema", schema.to_str().unwrap()])
+            .args([
+                "enforce",
+                "--file",
+                md.to_str().unwrap(),
+                "--schema",
+                schema.to_str().unwrap(),
+            ])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("FAIL"), "Should fail without --fix: {stdout}");
-        assert!(stdout.contains("no frontmatter"), "Should mention no frontmatter: {stdout}");
+        assert!(
+            stdout.contains("FAIL"),
+            "Should fail without --fix: {stdout}"
+        );
+        assert!(
+            stdout.contains("no frontmatter"),
+            "Should mention no frontmatter: {stdout}"
+        );
         assert!(!output.status.success());
 
         let after = fs::read_to_string(md).unwrap();
@@ -258,16 +330,19 @@ fn enforce_file_and_folder_mutually_exclusive() {
         .args(["enforce", "--file", "some.md", "--folder", "."])
         .output()
         .unwrap();
-    assert!(!output.status.success(), "Should fail with both --file and --folder");
+    assert!(
+        !output.status.success(),
+        "Should fail with both --file and --folder"
+    );
 }
 
 #[test]
 fn enforce_requires_file_or_folder() {
-    let output = fme_bin()
-        .args(["enforce"])
-        .output()
-        .unwrap();
-    assert!(!output.status.success(), "Should fail with neither --file nor --folder");
+    let output = fme_bin().args(["enforce"]).output().unwrap();
+    assert!(
+        !output.status.success(),
+        "Should fail with neither --file nor --folder"
+    );
 }
 
 // --describe integration tests
@@ -276,7 +351,11 @@ fn enforce_requires_file_or_folder() {
 fn describe_enforce_markdown() {
     let output = fme_bin().args(["enforce", "--describe"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(stdout.contains("# `enforce`"));
     assert!(stdout.contains("--schema"));
     assert!(stdout.contains("--folder"));
@@ -312,7 +391,11 @@ fn describe_today_markdown() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(stdout.contains("# `today`"));
     assert!(stdout.contains("--folder"));
 }
@@ -334,7 +417,15 @@ fn describe_stats_json() {
 fn describe_review_json() {
     // review requires --file and --quality even with --describe
     let output = fme_bin()
-        .args(["review", "--describe", "--json", "--file", "x", "--quality", "3"])
+        .args([
+            "review",
+            "--describe",
+            "--json",
+            "--file",
+            "x",
+            "--quality",
+            "3",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -347,7 +438,11 @@ fn describe_review_json() {
 fn describe_init_sr_markdown() {
     let output = fme_bin().args(["init-sr", "--describe"]).output().unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(stdout.contains("# `init-sr`"));
 }
 
@@ -359,16 +454,16 @@ fn describe_query_markdown() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(stdout.contains("# `query`"));
     assert!(stdout.contains("--folder"));
 }
 
-fn with_exclude_temp_dir(
-    test_name: &str,
-    files: &[(&str, &str)],
-    f: impl FnOnce(&Path),
-) {
+fn with_exclude_temp_dir(test_name: &str, files: &[(&str, &str)], f: impl FnOnce(&Path)) {
     let dir = std::env::temp_dir().join(format!("fme_excl_{test_name}_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
@@ -387,22 +482,30 @@ fn fix_adds_missing_fields_and_converts_yaml_to_toml() {
     let yaml_content = "---\ntags:\n  - cybersecurity\n  - blogs\n---\n\n## Body content\n";
     with_fix_temp_dir("converts", yaml_content, |dir, md_path| {
         let output = fme_bin()
-            .args([
-                "enforce",
-                "--folder", dir.to_str().unwrap(),
-                "--fix",
-            ])
+            .args(["enforce", "--folder", dir.to_str().unwrap(), "--fix"])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("FIXED"), "Should print FIXED: {stdout}");
-        assert!(stdout.contains("added:"), "Should list added fields: {stdout}");
+        assert!(
+            stdout.contains("added:"),
+            "Should list added fields: {stdout}"
+        );
 
         let after = fs::read_to_string(md_path).unwrap();
         assert!(after.starts_with("+++"), "Should convert to TOML: {after}");
-        assert!(after.contains("status = \"attempted\""), "Should have status with default: {after}");
-        assert!(after.contains("date = \"2026-01-01\""), "Should have date with default: {after}");
-        assert!(after.contains("type = \"\""), "Should have type with empty default: {after}");
+        assert!(
+            after.contains("status = \"attempted\""),
+            "Should have status with default: {after}"
+        );
+        assert!(
+            after.contains("date = \"2026-01-01\""),
+            "Should have date with default: {after}"
+        );
+        assert!(
+            after.contains("type = \"\""),
+            "Should have type with empty default: {after}"
+        );
         assert!(after.contains("Body content"), "Body preserved: {after}");
     });
 }
@@ -412,17 +515,19 @@ fn fix_uses_schema_defaults() {
     let yaml_content = "---\ntags:\n  - test\n---\n\n## Body\n";
     with_fix_temp_dir("defaults", yaml_content, |dir, md_path| {
         fme_bin()
-            .args([
-                "enforce",
-                "--folder", dir.to_str().unwrap(),
-                "--fix",
-            ])
+            .args(["enforce", "--folder", dir.to_str().unwrap(), "--fix"])
             .output()
             .unwrap();
 
         let after = fs::read_to_string(md_path).unwrap();
-        assert!(after.contains("status = \"attempted\""), "status should use schema default 'attempted': {after}");
-        assert!(after.contains("date = \"2026-01-01\""), "date should use schema default '2026-01-01': {after}");
+        assert!(
+            after.contains("status = \"attempted\""),
+            "status should use schema default 'attempted': {after}"
+        );
+        assert!(
+            after.contains("date = \"2026-01-01\""),
+            "date should use schema default '2026-01-01': {after}"
+        );
     });
 }
 
@@ -431,20 +536,28 @@ fn fix_creates_frontmatter_when_missing() {
     let no_fm = "# Just a heading\n\nSome body text.\n";
     with_fix_temp_dir("nofm", no_fm, |dir, md_path| {
         let output = fme_bin()
-            .args([
-                "enforce",
-                "--folder", dir.to_str().unwrap(),
-                "--fix",
-            ])
+            .args(["enforce", "--folder", dir.to_str().unwrap(), "--fix"])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("FIXED"), "Should fix no-frontmatter files: {stdout}");
-        assert!(stdout.contains("created frontmatter"), "Should mention created: {stdout}");
+        assert!(
+            stdout.contains("FIXED"),
+            "Should fix no-frontmatter files: {stdout}"
+        );
+        assert!(
+            stdout.contains("created frontmatter"),
+            "Should mention created: {stdout}"
+        );
 
         let after = fs::read_to_string(md_path).unwrap();
-        assert!(after.starts_with("+++"), "Should have TOML frontmatter: {after}");
-        assert!(after.contains("# Just a heading"), "Body preserved: {after}");
+        assert!(
+            after.starts_with("+++"),
+            "Should have TOML frontmatter: {after}"
+        );
+        assert!(
+            after.contains("# Just a heading"),
+            "Body preserved: {after}"
+        );
         assert!(after.contains("Some body text"), "Body preserved: {after}");
     });
 }
@@ -454,15 +567,18 @@ fn no_fix_fails_on_missing_frontmatter() {
     let no_fm = "# Just a heading\n\nSome body text.\n";
     with_fix_temp_dir("nofm_noflag", no_fm, |dir, md_path| {
         let output = fme_bin()
-            .args([
-                "enforce",
-                "--folder", dir.to_str().unwrap(),
-            ])
+            .args(["enforce", "--folder", dir.to_str().unwrap()])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("FAIL"), "Should FAIL without --fix: {stdout}");
-        assert!(stdout.contains("no frontmatter"), "Should mention no frontmatter: {stdout}");
+        assert!(
+            stdout.contains("FAIL"),
+            "Should FAIL without --fix: {stdout}"
+        );
+        assert!(
+            stdout.contains("no frontmatter"),
+            "Should mention no frontmatter: {stdout}"
+        );
 
         let after = fs::read_to_string(md_path).unwrap();
         assert_eq!(after, no_fm, "File unchanged without --fix");
@@ -474,19 +590,21 @@ fn fix_inserts_empty_string_when_no_default() {
     let yaml_content = "---\nstatus: attempted\ndate: 2026-01-01\n---\n\n## Body\n";
     with_fix_temp_dir("nodefault", yaml_content, |dir, md_path| {
         let output = fme_bin()
-            .args([
-                "enforce",
-                "--folder", dir.to_str().unwrap(),
-                "--fix",
-            ])
+            .args(["enforce", "--folder", dir.to_str().unwrap(), "--fix"])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
         assert!(stdout.contains("FIXED"), "Should fix the file: {stdout}");
-        assert!(stdout.contains("type"), "Should list 'type' as added: {stdout}");
+        assert!(
+            stdout.contains("type"),
+            "Should list 'type' as added: {stdout}"
+        );
 
         let after = fs::read_to_string(md_path).unwrap();
-        assert!(after.contains("type = \"\""), "type field should have empty string default: {after}");
+        assert!(
+            after.contains("type = \"\""),
+            "type field should have empty string default: {after}"
+        );
     });
 }
 
@@ -495,20 +613,28 @@ fn fix_replaces_invalid_allowed_value_with_default() {
     let yaml_content = "---\nstatus: bogus\ndate: 2026-01-01\ntype: leetcode\n---\n\n## Body\n";
     with_fix_temp_dir("invalid_val", yaml_content, |dir, md_path| {
         let output = fme_bin()
-            .args([
-                "enforce",
-                "--folder", dir.to_str().unwrap(),
-                "--fix",
-            ])
+            .args(["enforce", "--folder", dir.to_str().unwrap(), "--fix"])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("FIXED"), "Should fix invalid value: {stdout}");
-        assert!(stdout.contains("status"), "Should list 'status' as fixed: {stdout}");
+        assert!(
+            stdout.contains("FIXED"),
+            "Should fix invalid value: {stdout}"
+        );
+        assert!(
+            stdout.contains("status"),
+            "Should list 'status' as fixed: {stdout}"
+        );
 
         let after = fs::read_to_string(md_path).unwrap();
-        assert!(after.contains("status = \"attempted\""), "status should be replaced with default: {after}");
-        assert!(after.contains("type = \"leetcode\""), "Existing valid fields preserved: {after}");
+        assert!(
+            after.contains("status = \"attempted\""),
+            "status should be replaced with default: {after}"
+        );
+        assert!(
+            after.contains("type = \"leetcode\""),
+            "Existing valid fields preserved: {after}"
+        );
     });
 }
 
@@ -520,18 +646,27 @@ fn exclude_skips_matching_files() {
         let output = fme_bin()
             .args([
                 "enforce",
-                "--folder", dir.to_str().unwrap(),
-                "--exclude", "bad.md",
+                "--folder",
+                dir.to_str().unwrap(),
+                "--exclude",
+                "bad.md",
             ])
             .output()
             .unwrap();
         let stdout = String::from_utf8_lossy(&output.stdout);
-        assert!(stdout.contains("SKIP"), "Should print SKIP for bad.md: {stdout}");
+        assert!(
+            stdout.contains("SKIP"),
+            "Should print SKIP for bad.md: {stdout}"
+        );
         assert!(stdout.contains("bad.md"), "Should mention bad.md: {stdout}");
         assert!(stdout.contains("excluded"), "Should say excluded: {stdout}");
         assert!(stdout.contains("PASS"), "good.md should pass: {stdout}");
         assert!(!stdout.contains("FAIL"), "No files should fail: {stdout}");
-        assert!(output.status.success(), "Command should succeed: {}", String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "Command should succeed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     });
 }
 
@@ -542,20 +677,28 @@ fn exclude_with_wildcard() {
     let test2 = "---\ntags:\n  - b\n---\n\n## Test2\n";
     with_exclude_temp_dir(
         "wildcard",
-        &[("valid.md", valid), ("test_one.md", test1), ("test_two.md", test2)],
+        &[
+            ("valid.md", valid),
+            ("test_one.md", test1),
+            ("test_two.md", test2),
+        ],
         |dir| {
             let output = fme_bin()
                 .args([
                     "enforce",
-                    "--folder", dir.to_str().unwrap(),
-                    "--exclude", "test*",
+                    "--folder",
+                    dir.to_str().unwrap(),
+                    "--exclude",
+                    "test*",
                 ])
                 .output()
                 .unwrap();
             let stdout = String::from_utf8_lossy(&output.stdout);
             assert!(stdout.contains("SKIP"), "Should skip test files: {stdout}");
-            assert!(stdout.contains("test_one.md") || stdout.contains("test_two.md"),
-                "Should mention skipped test files: {stdout}");
+            assert!(
+                stdout.contains("test_one.md") || stdout.contains("test_two.md"),
+                "Should mention skipped test files: {stdout}"
+            );
             assert!(stdout.contains("PASS"), "valid.md should pass: {stdout}");
             assert!(!stdout.contains("FAIL"), "No files should fail: {stdout}");
             assert!(output.status.success(), "Command should succeed");
@@ -570,13 +713,19 @@ fn exclude_multiple_patterns() {
     let index = "---\ntags:\n  - nav\n---\n\n## Index\n";
     with_exclude_temp_dir(
         "multi",
-        &[("valid.md", valid), ("README.md", readme), ("index.md", index)],
+        &[
+            ("valid.md", valid),
+            ("README.md", readme),
+            ("index.md", index),
+        ],
         |dir| {
             let output = fme_bin()
                 .args([
                     "enforce",
-                    "--folder", dir.to_str().unwrap(),
-                    "--exclude", "README.md,index.md",
+                    "--folder",
+                    dir.to_str().unwrap(),
+                    "--exclude",
+                    "README.md,index.md",
                 ])
                 .output()
                 .unwrap();

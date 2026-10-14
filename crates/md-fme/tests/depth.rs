@@ -53,13 +53,26 @@ fn cleanup(dir: &std::path::Path) {
 fn query_depth1_finds_only_root() {
     let dir = make_nested_tree("q_d1");
     let out = fme()
-        .args(["query", "title exists", "--folder", dir.to_str().unwrap(), "--depth", "1"])
+        .args([
+            "query",
+            "title exists",
+            "--folder",
+            dir.to_str().unwrap(),
+            "--depth",
+            "1",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("root.md"), "depth=1 finds root: {stdout}");
-    assert!(!stdout.contains("level2.md"), "depth=1 skips level2: {stdout}");
-    assert!(!stdout.contains("level3.md"), "depth=1 skips level3: {stdout}");
+    assert!(
+        !stdout.contains("level2.md"),
+        "depth=1 skips level2: {stdout}"
+    );
+    assert!(
+        !stdout.contains("level3.md"),
+        "depth=1 skips level3: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -67,13 +80,26 @@ fn query_depth1_finds_only_root() {
 fn query_depth2_finds_root_and_level2() {
     let dir = make_nested_tree("q_d2");
     let out = fme()
-        .args(["query", "title exists", "--folder", dir.to_str().unwrap(), "--depth", "2"])
+        .args([
+            "query",
+            "title exists",
+            "--folder",
+            dir.to_str().unwrap(),
+            "--depth",
+            "2",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("root.md"), "depth=2 finds root: {stdout}");
-    assert!(stdout.contains("level2.md"), "depth=2 finds level2: {stdout}");
-    assert!(!stdout.contains("level3.md"), "depth=2 skips level3: {stdout}");
+    assert!(
+        stdout.contains("level2.md"),
+        "depth=2 finds level2: {stdout}"
+    );
+    assert!(
+        !stdout.contains("level3.md"),
+        "depth=2 skips level3: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -81,14 +107,30 @@ fn query_depth2_finds_root_and_level2() {
 fn query_depth3_finds_three_levels() {
     let dir = make_nested_tree("q_d3");
     let out = fme()
-        .args(["query", "title exists", "--folder", dir.to_str().unwrap(), "--depth", "3"])
+        .args([
+            "query",
+            "title exists",
+            "--folder",
+            dir.to_str().unwrap(),
+            "--depth",
+            "3",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("root.md"), "depth=3 finds root: {stdout}");
-    assert!(stdout.contains("level2.md"), "depth=3 finds level2: {stdout}");
-    assert!(stdout.contains("level3.md"), "depth=3 finds level3: {stdout}");
-    assert!(!stdout.contains("level4.md"), "depth=3 skips level4: {stdout}");
+    assert!(
+        stdout.contains("level2.md"),
+        "depth=3 finds level2: {stdout}"
+    );
+    assert!(
+        stdout.contains("level3.md"),
+        "depth=3 finds level3: {stdout}"
+    );
+    assert!(
+        !stdout.contains("level4.md"),
+        "depth=3 skips level4: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -96,14 +138,30 @@ fn query_depth3_finds_three_levels() {
 fn query_depth0_unlimited_finds_all() {
     let dir = make_nested_tree("q_d0");
     let out = fme()
-        .args(["query", "title exists", "--folder", dir.to_str().unwrap(), "--depth", "0"])
+        .args([
+            "query",
+            "title exists",
+            "--folder",
+            dir.to_str().unwrap(),
+            "--depth",
+            "0",
+        ])
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("root.md"), "depth=0 finds root: {stdout}");
-    assert!(stdout.contains("level2.md"), "depth=0 finds level2: {stdout}");
-    assert!(stdout.contains("level3.md"), "depth=0 finds level3: {stdout}");
-    assert!(stdout.contains("level4.md"), "depth=0 finds level4: {stdout}");
+    assert!(
+        stdout.contains("level2.md"),
+        "depth=0 finds level2: {stdout}"
+    );
+    assert!(
+        stdout.contains("level3.md"),
+        "depth=0 finds level3: {stdout}"
+    );
+    assert!(
+        stdout.contains("level4.md"),
+        "depth=0 finds level4: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -116,9 +174,18 @@ fn query_default_depth_is_3() {
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("root.md"), "default finds root: {stdout}");
-    assert!(stdout.contains("level2.md"), "default finds level2: {stdout}");
-    assert!(stdout.contains("level3.md"), "default finds level3: {stdout}");
-    assert!(!stdout.contains("level4.md"), "default skips level4: {stdout}");
+    assert!(
+        stdout.contains("level2.md"),
+        "default finds level2: {stdout}"
+    );
+    assert!(
+        stdout.contains("level3.md"),
+        "default finds level3: {stdout}"
+    );
+    assert!(
+        !stdout.contains("level4.md"),
+        "default skips level4: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -132,9 +199,18 @@ fn today_depth1_finds_only_root() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("root.md"), "today depth=1 finds root: {stdout}");
-    assert!(!stdout.contains("level2.md"), "today depth=1 skips level2: {stdout}");
-    assert!(stdout.contains("1 item(s) due"), "today depth=1 count: {stdout}");
+    assert!(
+        stdout.contains("root.md"),
+        "today depth=1 finds root: {stdout}"
+    );
+    assert!(
+        !stdout.contains("level2.md"),
+        "today depth=1 skips level2: {stdout}"
+    );
+    assert!(
+        stdout.contains("1 item(s) due"),
+        "today depth=1 count: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -146,11 +222,26 @@ fn today_depth0_finds_all() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("root.md"), "today depth=0 finds root: {stdout}");
-    assert!(stdout.contains("level2.md"), "today depth=0 finds level2: {stdout}");
-    assert!(stdout.contains("level3.md"), "today depth=0 finds level3: {stdout}");
-    assert!(stdout.contains("level4.md"), "today depth=0 finds level4: {stdout}");
-    assert!(stdout.contains("4 item(s) due"), "today depth=0 count: {stdout}");
+    assert!(
+        stdout.contains("root.md"),
+        "today depth=0 finds root: {stdout}"
+    );
+    assert!(
+        stdout.contains("level2.md"),
+        "today depth=0 finds level2: {stdout}"
+    );
+    assert!(
+        stdout.contains("level3.md"),
+        "today depth=0 finds level3: {stdout}"
+    );
+    assert!(
+        stdout.contains("level4.md"),
+        "today depth=0 finds level4: {stdout}"
+    );
+    assert!(
+        stdout.contains("4 item(s) due"),
+        "today depth=0 count: {stdout}"
+    );
     cleanup(&dir);
 }
 
@@ -164,7 +255,10 @@ fn stats_depth1_counts_only_root() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
-    let total_line = stdout.lines().find(|l| l.contains("Total SR items:")).unwrap_or("");
+    let total_line = stdout
+        .lines()
+        .find(|l| l.contains("Total SR items:"))
+        .unwrap_or("");
     assert!(total_line.contains("1"), "stats depth=1 total=1: {stdout}");
     cleanup(&dir);
 }
@@ -177,7 +271,10 @@ fn stats_depth0_counts_all() {
         .output()
         .unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
-    let total_line = stdout.lines().find(|l| l.contains("Total SR items:")).unwrap_or("");
+    let total_line = stdout
+        .lines()
+        .find(|l| l.contains("Total SR items:"))
+        .unwrap_or("");
     assert!(total_line.contains("4"), "stats depth=0 total=4: {stdout}");
     cleanup(&dir);
 }

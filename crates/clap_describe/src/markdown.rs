@@ -26,10 +26,7 @@ impl CommandSchema {
 
         out.push_str(&format!("# `{}`\n\n", self.name));
 
-        let description = self
-            .long_about
-            .as_deref()
-            .or(self.about.as_deref());
+        let description = self.long_about.as_deref().or(self.about.as_deref());
         if let Some(desc) = description {
             out.push_str(desc);
             out.push_str("\n\n");
@@ -55,12 +52,8 @@ impl CommandSchema {
 
         if !self.options.is_empty() {
             out.push_str("\n## Options\n\n");
-            out.push_str(
-                "| Flag | Required | Default | Possible Values | Description |\n",
-            );
-            out.push_str(
-                "|------|----------|---------|-----------------|-------------|\n",
-            );
+            out.push_str("| Flag | Required | Default | Possible Values | Description |\n");
+            out.push_str("|------|----------|---------|-----------------|-------------|\n");
             for arg in &self.options {
                 let flag = format_flag(arg);
                 let required = if arg.required { "yes" } else { "no" };

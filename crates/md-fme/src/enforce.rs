@@ -113,7 +113,10 @@ fn apply_fix(
         .as_table_mut()
         .ok_or_else(|| "Frontmatter is not a table".to_string())?;
     for field_name in fixable {
-        let default_val = schema.fields.get(field_name).and_then(|d| d.default.clone());
+        let default_val = schema
+            .fields
+            .get(field_name)
+            .and_then(|d| d.default.clone());
         let val = default_val.unwrap_or_default();
         table.insert(field_name.clone(), toml::Value::String(val));
     }
@@ -142,7 +145,11 @@ const DEFAULT_EXCLUDES: &[&str] = &["README.md", "AGENTS.md", "index.md"];
 fn parse_exclude_patterns(exclude: Option<&str>) -> Vec<String> {
     let mut patterns: Vec<String> = DEFAULT_EXCLUDES.iter().map(|s| s.to_string()).collect();
     if let Some(s) = exclude {
-        for p in s.split(',').map(|p| p.trim().to_string()).filter(|p| !p.is_empty()) {
+        for p in s
+            .split(',')
+            .map(|p| p.trim().to_string())
+            .filter(|p| !p.is_empty())
+        {
             if !patterns.contains(&p) {
                 patterns.push(p);
             }
@@ -192,17 +199,17 @@ fn validate_toml_document(content: &toml::Value, schema: &Schema) -> Vec<String>
     errors
 }
 
-pub fn run_single_toml_file(
-    schema_path: &Path,
-    file: &Path,
-    json: bool,
-) -> Result<(), String> {
+pub fn run_single_toml_file(schema_path: &Path, file: &Path, json: bool) -> Result<(), String> {
     let schema_content = std::fs::read_to_string(schema_path)
         .map_err(|e| format!("Cannot read schema {}: {e}", schema_path.display()))?;
     let schema: Schema =
         toml::from_str(&schema_content).map_err(|e| format!("Invalid schema TOML: {e}"))?;
 
-    let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let fname = file
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
     let mut results: Vec<EnforceFile> = Vec::new();
     let mut pass = 0u32;
     let mut fail = 0u32;
@@ -217,7 +224,11 @@ pub fn run_single_toml_file(
                 errors: vec![format!("parse error: {e}")],
                 fixed: vec![],
             });
-            let result = EnforceResult { passed: pass, failed: fail, results };
+            let result = EnforceResult {
+                passed: pass,
+                failed: fail,
+                results,
+            };
             render::get(json).enforce(&result);
             return Err("1 file(s) failed validation".to_string());
         }
@@ -226,15 +237,33 @@ pub fn run_single_toml_file(
     let errors = validate_toml_document(&doc.content, &schema);
     if errors.is_empty() {
         pass += 1;
-        results.push(EnforceFile { file: fname, status: FileStatus::Pass, errors: vec![], fixed: vec![] });
-        let result = EnforceResult { passed: pass, failed: fail, results };
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Pass,
+            errors: vec![],
+            fixed: vec![],
+        });
+        let result = EnforceResult {
+            passed: pass,
+            failed: fail,
+            results,
+        };
         render::get(json).enforce(&result);
         return Ok(());
     }
 
     fail += 1;
-    results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors, fixed: vec![] });
-    let result = EnforceResult { passed: pass, failed: fail, results };
+    results.push(EnforceFile {
+        file: fname,
+        status: FileStatus::Fail,
+        errors,
+        fixed: vec![],
+    });
+    let result = EnforceResult {
+        passed: pass,
+        failed: fail,
+        results,
+    };
     render::get(json).enforce(&result);
     Err("1 file(s) failed validation".to_string())
 }
@@ -283,7 +312,11 @@ fn run_single_file_md(
     let schema: Schema =
         toml::from_str(&schema_content).map_err(|e| format!("Invalid schema TOML: {e}"))?;
 
-    let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let fname = file
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
     let mut results: Vec<EnforceFile> = Vec::new();
     let mut pass = 0u32;
     let mut fail = 0u32;
@@ -299,7 +332,11 @@ fn run_single_file_md(
                     errors: vec!["no frontmatter".into()],
                     fixed: vec![],
                 });
-                let result = EnforceResult { passed: pass, failed: fail, results };
+                let result = EnforceResult {
+                    passed: pass,
+                    failed: fail,
+                    results,
+                };
                 render::get(json).enforce(&result);
                 return Err("1 file(s) failed validation".to_string());
             }
@@ -322,7 +359,11 @@ fn run_single_file_md(
                         errors: vec![format!("fix error: {e}")],
                         fixed: vec![],
                     });
-                    let result = EnforceResult { passed: pass, failed: fail, results };
+                    let result = EnforceResult {
+                        passed: pass,
+                        failed: fail,
+                        results,
+                    };
                     render::get(json).enforce(&result);
                     return Err("1 file(s) failed validation".to_string());
                 }
@@ -336,19 +377,42 @@ fn run_single_file_md(
         if was_created {
             let mut fixed = vec!["created frontmatter".to_string()];
             fixed.extend(created_fields);
-            results.push(EnforceFile { file: fname, status: FileStatus::Fixed, errors: vec![], fixed });
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Fixed,
+                errors: vec![],
+                fixed,
+            });
         } else {
-            results.push(EnforceFile { file: fname, status: FileStatus::Pass, errors: vec![], fixed: vec![] });
+            results.push(EnforceFile {
+                file: fname,
+                status: FileStatus::Pass,
+                errors: vec![],
+                fixed: vec![],
+            });
         }
-        let result = EnforceResult { passed: pass, failed: fail, results };
+        let result = EnforceResult {
+            passed: pass,
+            failed: fail,
+            results,
+        };
         render::get(json).enforce(&result);
         return Ok(());
     }
 
     if !fix {
         fail += 1;
-        results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors, fixed: vec![] });
-        let result = EnforceResult { passed: pass, failed: fail, results };
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Fail,
+            errors,
+            fixed: vec![],
+        });
+        let result = EnforceResult {
+            passed: pass,
+            failed: fail,
+            results,
+        };
         render::get(json).enforce(&result);
         return Err("1 file(s) failed validation".to_string());
     }
@@ -358,8 +422,17 @@ fn run_single_file_md(
         fail += 1;
         let mut all_errors = errors;
         all_errors.extend(hint_for_unfixable(&doc.frontmatter, &schema));
-        results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors: all_errors, fixed: vec![] });
-        let result = EnforceResult { passed: pass, failed: fail, results };
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Fail,
+            errors: all_errors,
+            fixed: vec![],
+        });
+        let result = EnforceResult {
+            passed: pass,
+            failed: fail,
+            results,
+        };
         render::get(json).enforce(&result);
         return Err("1 file(s) failed validation".to_string());
     }
@@ -372,7 +445,11 @@ fn run_single_file_md(
             errors: vec![format!("fix error: {e}")],
             fixed: vec![],
         });
-        let result = EnforceResult { passed: pass, failed: fail, results };
+        let result = EnforceResult {
+            passed: pass,
+            failed: fail,
+            results,
+        };
         render::get(json).enforce(&result);
         return Err("1 file(s) failed validation".to_string());
     }
@@ -390,7 +467,11 @@ fn run_single_file_md(
                 errors: vec!["re-read failed after fix".into()],
                 fixed: added,
             });
-            let result = EnforceResult { passed: pass, failed: fail, results };
+            let result = EnforceResult {
+                passed: pass,
+                failed: fail,
+                results,
+            };
             render::get(json).enforce(&result);
             return Err("1 file(s) failed validation".to_string());
         }
@@ -399,13 +480,27 @@ fn run_single_file_md(
     let re_errors = validate(&re_doc.frontmatter, &schema);
     if re_errors.is_empty() {
         pass += 1;
-        results.push(EnforceFile { file: fname, status: FileStatus::Fixed, errors: vec![], fixed: added });
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Fixed,
+            errors: vec![],
+            fixed: added,
+        });
     } else {
         fail += 1;
-        results.push(EnforceFile { file: fname, status: FileStatus::Fail, errors: re_errors, fixed: added });
+        results.push(EnforceFile {
+            file: fname,
+            status: FileStatus::Fail,
+            errors: re_errors,
+            fixed: added,
+        });
     }
 
-    let result = EnforceResult { passed: pass, failed: fail, results };
+    let result = EnforceResult {
+        passed: pass,
+        failed: fail,
+        results,
+    };
     render::get(json).enforce(&result);
 
     if fail > 0 {
@@ -440,7 +535,11 @@ pub fn run(
 
     // Process .md files
     for file in &md_files {
-        let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let fname = file
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         if is_excluded(&fname, &exclude_patterns) {
             results.push(EnforceFile {
@@ -496,9 +595,19 @@ pub fn run(
             if was_created {
                 let mut fixed = vec!["created frontmatter".to_string()];
                 fixed.extend(created_fields);
-                results.push(EnforceFile { file: fname, status: FileStatus::Fixed, errors: vec![], fixed });
+                results.push(EnforceFile {
+                    file: fname,
+                    status: FileStatus::Fixed,
+                    errors: vec![],
+                    fixed,
+                });
             } else {
-                results.push(EnforceFile { file: fname, status: FileStatus::Pass, errors: vec![], fixed: vec![] });
+                results.push(EnforceFile {
+                    file: fname,
+                    status: FileStatus::Pass,
+                    errors: vec![],
+                    fixed: vec![],
+                });
             }
             continue;
         }
@@ -578,7 +687,11 @@ pub fn run(
 
     // Process .toml files
     for file in &toml_files {
-        let fname = file.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let fname = file
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         if is_excluded(&fname, &exclude_patterns) {
             results.push(EnforceFile {
@@ -625,7 +738,11 @@ pub fn run(
         });
     }
 
-    let result = EnforceResult { passed: pass, failed: fail, results };
+    let result = EnforceResult {
+        passed: pass,
+        failed: fail,
+        results,
+    };
     render::get(json).enforce(&result);
 
     if fail > 0 {
