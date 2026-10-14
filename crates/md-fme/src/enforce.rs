@@ -159,10 +159,10 @@ fn parse_exclude_patterns(exclude: Option<&str>) -> Vec<String> {
 }
 
 fn matches_pattern(filename: &str, pattern: &str) -> bool {
-    if pattern.starts_with('*') {
-        filename.ends_with(&pattern[1..])
-    } else if pattern.ends_with('*') {
-        filename.starts_with(&pattern[..pattern.len() - 1])
+    if let Some(suffix) = pattern.strip_prefix('*') {
+        filename.ends_with(suffix)
+    } else if let Some(prefix) = pattern.strip_suffix('*') {
+        filename.starts_with(prefix)
     } else {
         filename == pattern
     }
@@ -271,18 +271,22 @@ pub fn run_single_toml_file(schema_path: &Path, file: &Path, json: bool) -> Resu
 fn hint_for_unfixable(fm: &toml::Value, schema: &Schema) -> Vec<String> {
     let mut hints = Vec::new();
     for (field_name, field_def) in &schema.fields {
-        if let Some(allowed) = &field_def.allowed_values {
-            if field_def.default.is_none() {
-                if let Some(v) = frontmatter::get_nested(fm, field_name) {
-                    let s = frontmatter::value_to_string(v);
-                    if !allowed.contains(&s) {
-                        hints.push(format!(
-                            "HINT: `{field_name}` has allowed_values but no default — add `default = \"{}\"` to [fields.{field_name}] in schema.toml to enable --fix",
-                            allowed[0]
-                        ));
-                    }
-                }
-            }
+        // let-else instead of let-chains keeps the MSRV below Rust 1.88.
+        let Some(allowed) = &field_def.allowed_values else {
+            continue;
+        };
+        if field_def.default.is_some() {
+            continue;
+        }
+        let Some(v) = frontmatter::get_nested(fm, field_name) else {
+            continue;
+        };
+        let s = frontmatter::value_to_string(v);
+        if !allowed.contains(&s) {
+            hints.push(format!(
+                "HINT: `{field_name}` has allowed_values but no default — add `default = \"{}\"` to [fields.{field_name}] in schema.toml to enable --fix",
+                allowed[0]
+            ));
         }
     }
     hints

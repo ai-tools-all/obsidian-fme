@@ -1,3 +1,6 @@
+// Shared fixtures: each test binary uses only some of them.
+#![allow(dead_code)]
+
 use clap::{Arg, ArgAction, Command};
 
 /// Minimal command — no args, no subcommands

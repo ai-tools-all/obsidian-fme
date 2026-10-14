@@ -371,7 +371,7 @@ fn describe_enforce_json() {
     assert!(output.status.success());
     let v: serde_json::Value = serde_json::from_str(&stdout).unwrap();
     assert_eq!(v["name"], "enforce");
-    assert!(v["options"].as_array().unwrap().len() > 0);
+    assert!(!v["options"].as_array().unwrap().is_empty());
 }
 
 #[test]

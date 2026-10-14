@@ -132,7 +132,7 @@ fn format_kv(key: &str, value: &Value) -> String {
         }
         Value::Boolean(b) => format!("{key} = {b}\n"),
         Value::Array(arr) => {
-            let items: Vec<String> = arr.iter().map(|v| format_inline_value(v)).collect();
+            let items: Vec<String> = arr.iter().map(format_inline_value).collect();
             format!("{key} = [{}]\n", items.join(", "))
         }
         Value::Table(_) => toml::to_string(&toml::map::Map::from_iter([(
@@ -157,14 +157,12 @@ fn format_inline_value(v: &Value) -> String {
 fn frontmatter_boundaries(raw: &str) -> Option<(usize, usize, bool)> {
     let trimmed = raw.trim_start();
     let skip = raw.len() - trimmed.len();
-    if trimmed.starts_with("+++") {
-        let after = &trimmed[3..];
+    if let Some(after) = trimmed.strip_prefix("+++") {
         let end = after.find("\n+++")?;
         let start = skip;
         let close = skip + 3 + end + 1 + 3;
         Some((start, close, true))
-    } else if trimmed.starts_with("---") {
-        let after = &trimmed[3..];
+    } else if let Some(after) = trimmed.strip_prefix("---") {
         let end = after.find("\n---")?;
         let start = skip;
         let close = skip + 3 + end + 1 + 3;
